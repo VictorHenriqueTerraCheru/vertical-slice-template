@@ -67,10 +67,14 @@ public sealed class AuthModule : IEndpointModule
         };
     }
 
-    private static async Task<NoContent> LogoutAsync(
+    private static async Task<Results<NoContent, ProblemHttpResult>> LogoutAsync(
         ClaimsPrincipal user, IAuthService service, CancellationToken ct)
     {
-        await service.LogoutAsync(user.GetUserId(), ct);
-        return TypedResults.NoContent();
+        var result = await service.LogoutAsync(user.GetUserId(), ct);
+        return result.Error switch
+        {
+            null => TypedResults.NoContent(),
+            var error => error.ToProblem(),
+        };
     }
 }

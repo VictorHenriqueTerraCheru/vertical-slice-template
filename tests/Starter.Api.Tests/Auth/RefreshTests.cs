@@ -42,6 +42,15 @@ public sealed class RefreshTests(ApiFactory factory)
 
         responses.Count(response => response.StatusCode == HttpStatusCode.OK).Should().Be(1);
         responses.Count(response => response.StatusCode == HttpStatusCode.Unauthorized).Should().Be(1);
+
+        var userId = (await ApiClient.ReadAsync<UserResponse>(await user.Client.GetMeAsync())).Id;
+        var revokedFlags = await factory.InDatabaseAsync(db => db.Set<RefreshToken>()
+            .Where(row => row.UserId == userId)
+            .Select(row => row.RevokedAt != null)
+            .ToListAsync());
+        revokedFlags.Should().HaveCount(2);
+        revokedFlags.Count(revoked => revoked).Should().Be(1);
+        revokedFlags.Count(revoked => !revoked).Should().Be(1);
     }
 
     [Fact]
@@ -77,7 +86,7 @@ public sealed class RefreshTests(ApiFactory factory)
         var normalized = user.Email.ToUpperInvariant();
         await factory.InDatabaseAsync(db => db.Set<User>()
             .Where(row => row.NormalizedEmail == normalized)
-            .ExecuteUpdateAsync(set => set.SetProperty(row => row.LockoutEnd, DateTimeOffset.UtcNow.AddHours(1))));
+            .ExecuteUpdateAsync(set => set.SetProperty(row => row.LockoutEnd, DateTimeOffset.MaxValue)));
 
         var response = await NewClient().RefreshAsync(user.Tokens.RefreshToken);
 

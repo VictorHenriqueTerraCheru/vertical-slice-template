@@ -60,8 +60,11 @@ public sealed class AuthService(
             return IssuePair(user.Value!);
         }, cancellationToken);
 
-    public Task LogoutAsync(Guid userId, CancellationToken cancellationToken) =>
-        refreshTokens.RevokeAllByUserAsync(userId, clock.GetUtcNow(), cancellationToken);
+    public async Task<Result<Empty>> LogoutAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        await refreshTokens.RevokeAllByUserAsync(userId, clock.GetUtcNow(), cancellationToken);
+        return new Empty();
+    }
 
     private TokenPair IssuePair(User user)
     {
