@@ -28,9 +28,11 @@ public static class DependencyInjection
     }
 
     private static IServiceCollection AddPersistence(this IServiceCollection services, EnvironmentConfiguration configuration) =>
-        services.AddDbContext<AppDbContext>(options => options
-            .UseNpgsql(configuration.DatabaseConnectionString)
-            .UseSnakeCaseNamingConvention());
+        services
+            .AddDbContext<AppDbContext>(options => options
+                .UseNpgsql(configuration.DatabaseConnectionString)
+                .UseSnakeCaseNamingConvention())
+            .AddScoped<IUnitOfWork, UnitOfWork>();
 
     public static IServiceCollection AddRepositories(this IServiceCollection services)
     {

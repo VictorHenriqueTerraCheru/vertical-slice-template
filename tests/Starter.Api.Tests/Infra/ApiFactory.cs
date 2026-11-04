@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
 using Starter.Api.Common;
@@ -17,16 +18,20 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.UseEnvironment("Testing");
-        builder.UseSetting("DB_CONNECTION", _database.GetConnectionString());
-        builder.UseSetting("JWT_KEY", "test-key-with-at-least-32-characters-long");
-        builder.UseSetting("JWT_ISSUER", "starter-tests");
-        builder.UseSetting("JWT_AUDIENCE", "starter-tests");
-        builder.UseSetting("RATE_LIMIT_AUTH_PER_MINUTE", "100000");
+        builder.UseEnvironment(EnvironmentNames.Testing);
+        builder.UseSetting(ConfigurationKeys.DatabaseConnection, _database.GetConnectionString());
+        builder.UseSetting(ConfigurationKeys.JwtKey, "test-key-with-at-least-32-characters-long");
+        builder.UseSetting(ConfigurationKeys.JwtIssuer, "starter-tests");
+        builder.UseSetting(ConfigurationKeys.JwtAudience, "starter-tests");
+        builder.UseSetting(ConfigurationKeys.RateLimitAuthPerMinute, "100000");
         builder.ConfigureTestServices(services => services.AddSingleton<TimeProvider>(Clock));
     }
 
-    public async Task InitializeAsync() => await _database.StartAsync();
+    public async Task InitializeAsync()
+    {
+        await _database.StartAsync();
+        await InDatabaseAsync(db => db.Database.MigrateAsync());
+    }
 
     public async Task<T> InDatabaseAsync<T>(Func<AppDbContext, Task<T>> action)
     {
