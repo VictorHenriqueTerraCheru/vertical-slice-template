@@ -1,0 +1,15 @@
+.git/
+.vs/
+.vscode/
+.github/
+.claude/
+.superpowers/
+.env
+tests/
+docs/
+ai/
+bruno/
+**/bin/
+**/obj/
+*.md
+docker-compose.yml
