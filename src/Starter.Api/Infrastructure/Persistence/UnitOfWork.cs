@@ -29,6 +29,10 @@ public sealed class UnitOfWork(AppDbContext context) : IUnitOfWork
         {
             return CommonErrors.ConcurrentChange;
         }
+        catch (DbUpdateException exception) when (exception.IsUniqueViolation())
+        {
+            return CommonErrors.ConcurrentChange;
+        }
         finally
         {
             if (!committed)

@@ -51,7 +51,7 @@ Namespaces curtos e fixos: `Starter.Api.<Area>`, `Starter.Api.Common`, `Starter.
 - **Module** (`src/Starter.Api/Modules/TodoModule.cs`): só HTTP. Rotas em `Map`, handlers `private static` abaixo. Aplica `.Validate<T>()`, lê o usuário do token (`user.GetUserId()`), chama o service da própria área e traduz o `Result<T>` com `switch` para `Results<...>` tipado. Handlers terminam em `Async`. Um `IEndpointModule` novo é descoberto sozinho; não há registro.
 - **Service** (`Feature/Todos/Services/TodoService.cs`): regra de negócio e orquestração. Recebe repositories, `IUnitOfWork`, `TimeProvider`. Não conhece `HttpContext`, `AppDbContext`, LINQ de EF nem `IQueryable`. Devolve `Result<T>`.
 - **Repository** (`Feature/Todos/Repositories/TodoRepository.cs`): só acesso a dados. Único lugar, com `UnitOfWork`, que recebe `AppDbContext`. Não chama `SaveChanges`. Nunca devolve `IQueryable`. Escrita devolve entidade; leitura devolve projeção (`TodoItemResponse.Projection`).
-- **Regra pura** (`Feature/Todos/Rules/TodoTransitions.cs`): classe estática sem dependência além da BCL, com teste unitário direto.
+- **Regra pura** (`Feature/Todos/Rules/TodoTransitions.cs`): classe estática sem dependência além da BCL, com teste unitário direto e sem banco. Toda decisão de domínio do tipo "isto pode acontecer dado este estado" mora em `Feature/<Area>/Rules/`, mesmo que tenha uma linha só (exemplo: "um livro só pode ser avaliado depois de lido"). O service só chama a regra e devolve o erro; fica com a orquestração e nada mais. Modelo: `TodoTransitions`.
 - **Entre features**: uma slice usa outra pelo service, nunca pelo repository. `AuthService` usa `IUserService`. Sem ciclos. `Common` não depende de feature.
 - **Identity**: `UserManager` só em `Feature/Users/Repositories/UserRepository.cs` e em `Infrastructure/Persistence`. Nenhum service o recebe (`tests/Starter.Api.Tests/Architecture/ArchitectureTests.cs` falha se receber).
 
@@ -61,6 +61,7 @@ Namespaces curtos e fixos: `Starter.Api.<Area>`, `Starter.Api.Common`, `Starter.
 
 - Escrita única que não pode conflitar: `SaveChangesAsync(ct)`. Retorna `Task` de propósito. Exemplo: `TodoService.CreateAsync`.
 - Update ou delete que pode conflitar, e qualquer operação que toque mais de um repository: `ExecuteInTransactionAsync`. Ela salva e confirma só se o `Result<T>` é sucesso, faz rollback e limpa o tracker se falha, e traduz `DbUpdateConcurrencyException` em `CommonErrors.ConcurrentChange` (409). Exemplos: `TodoService.TransitionAsync` (dois repositories), `UpdateAsync`, `DeleteAsync`.
+- Primeira escrita que pode disputar uma chave única ou composta (duas requisições simultâneas criando o mesmo registro) passa por `ExecuteInTransactionAsync`: `DbUpdateException` de violação de unicidade (`DatabaseErrors.IsUniqueViolation`) vira `CommonErrors.ConcurrentChange` (409). O repository só traduz unicidade por conta própria quando precisa de um erro específico, como `UserRepository` faz com `UserErrors.EmailAlreadyInUse`.
 - Conflito é detectado por `Version` (`IsRowVersion`) na entidade; entidade editável concorrentemente declara essa coluna em `Infrastructure/Persistence/Configurations/TodoItemConfiguration.cs`.
 
 ## Paginação
@@ -99,7 +100,7 @@ Regras: `page` 1 a 10.000 (padrão 1); `pageSize` 1 a 100 (padrão 20); `sortBy`
 
 - Endpoint novo nasce exigindo autenticação (`MapEndpoints` aplica `Authenticated` a tudo). Rota pública só com `AllowAnonymous()` explícito; `tests/Starter.Api.Tests/Architecture/EndpointSecurityTests.cs` falha se surgir uma fora da lista.
 - Policies: só `Authenticated` e `Administrator` (`Common/Statics/AuthorizationPolicies.cs`).
-- Usuário vem do token, nunca do corpo. Toda leitura e escrita filtra pelo dono; recurso de outro usuário responde 404.
+- Usuário vem do token, nunca do corpo. Dado pessoal sempre filtra pelo dono vindo do token, em leitura e escrita; recurso pessoal de outro usuário responde 404. Um projeto pode ter dado compartilhado (por exemplo, um catálogo visível a todos), mas o plano ou o `CONTEXT.md` precisa dizer isso explicitamente, e as partes específicas do usuário (como a avaliação que ele deu) continuam filtradas pelo dono.
 - Nunca logar senha, token ou dado pessoal. Logs estruturados com placeholders.
 - Segurança é do Identity e do JWT bearer; não escreva hash, bloqueio ou token de recuperação à mão.
 
@@ -134,7 +135,7 @@ Fluxo completo de uma feature nova: `ai/playbooks/nova-feature.md`.
 
 ## Estilo
 
-- Zero comentários em qualquer linguagem, inclusive SQL, YAML e Dockerfile (única exceção: `.env.example`). Sem assinatura de autoria.
+- Zero comentários em qualquer linguagem, inclusive SQL, YAML e Dockerfile (exceções: `.env.example` e os arquivos gerados pelo EF em `Migrations/`, que mantêm os comentários gerados e não são editados). Sem assinatura de autoria.
 - KISS: métodos pequenos, guard clauses, nomes que dispensam explicação.
 - Um tipo por arquivo. Enums agrupados em `<Assunto>Enums.cs` (`Feature/Todos/Models/TodoEnums.cs`) ou arquivo próprio em `Common/Enums`.
 - Sem `const` no arquivo que a consome: vai para `<Area>Constants.cs` ou `Common/Statics`. Exceção: o caminho da rota, literal em cada Module.

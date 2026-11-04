@@ -112,6 +112,32 @@ public sealed class UnitOfWorkTests(ApiFactory factory)
     }
 
     [Fact]
+    public async Task Unique_violation_becomes_409_error_and_clears_tracker()
+    {
+        var email = $"{Guid.NewGuid()}@example.com";
+        var first = NewUser(email);
+        var second = NewUser(email);
+        second.Id = Guid.NewGuid();
+        second.UserName = $"{Guid.NewGuid()}@example.com";
+        second.NormalizedUserName = second.UserName.ToUpperInvariant();
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+        db.Set<User>().Add(first);
+        await unitOfWork.SaveChangesAsync(CancellationToken.None);
+
+        var result = await unitOfWork.ExecuteInTransactionAsync<bool>(_ =>
+        {
+            db.Set<User>().Add(second);
+            return Task.FromResult<Result<bool>>(true);
+        }, CancellationToken.None);
+
+        result.Error.Should().Be(CommonErrors.ConcurrentChange);
+        db.ChangeTracker.Entries().Should().BeEmpty();
+        (await ExistsAsync(second.Id)).Should().BeFalse();
+    }
+
+    [Fact]
     public async Task Rollback_failure_does_not_mask_original_exception_and_clears_tracker()
     {
         var user = NewUser($"{Guid.NewGuid()}@example.com");
