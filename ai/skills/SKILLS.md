@@ -11,6 +11,7 @@ Skills do Claude Code ficam em `.claude/skills/`. Os roteiros em `ai/playbooks/`
 | `nova-feature` | criar uma área ou funcionalidade | `ai/playbooks/nova-feature.md` |
 | `nova-migration` | alterar o schema | `ai/playbooks/nova-migration.md` |
 | `revisar-arquitetura` | conferir um diff contra as regras | `ai/playbooks/revisar-arquitetura.md` |
+| `configurar-ci-cd` | abrir PR, investigar CI, proteger a `main`, publicar ou adicionar deploy | `ai/playbooks/configurar-ci-cd.md` |
 
 ## De terceiros
 

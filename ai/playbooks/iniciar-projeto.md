@@ -15,6 +15,7 @@ Use quando a pessoa descreve um projeto novo e quer começar a partir deste temp
 9. Escreva `ai/PLANO.md`: features em ordem de implementação, cada uma com critérios de aceite verificáveis.
 10. Rode `dotnet build`, `dotnet test` e `tools/check-docs.sh`. Tudo precisa passar antes de seguir; então commite o arquivamento.
 11. Implemente a primeira feature com `ai/playbooks/nova-feature.md`.
+12. Ao publicar o repositório, siga `ai/playbooks/configurar-ci-cd.md`.
 
 ## Pronto quando
 

@@ -129,6 +129,7 @@ Regras: `page` 1 a 10.000 (padrão 1); `pageSize` 1 a 100 (padrão 20); `sortBy`
 | Rota pública | `AllowAnonymous()` e entrada na lista do teste | `Modules/AuthModule.cs`, `tests/Starter.Api.Tests/Architecture/EndpointSecurityTests.cs` |
 | Tarefa em segundo plano | `ai/guias/tarefa-em-segundo-plano.md` | |
 | Permissão granular | `ai/guias/permissoes-granulares.md` | `ai/adr/0006-policies-simples.md` |
+| CI, PR, publicação ou deploy | `ai/playbooks/configurar-ci-cd.md` | `.github/workflows/ci.yml` |
 | Teste de endpoint | classe na pasta da feature, usando `ApiFactory` | `tests/Starter.Api.Tests/Todos/TodoCrudTests.cs` |
 | Teste de regra pura | teste direto, sem banco | `tests/Starter.Api.Tests/Todos/TodoTransitionsTests.cs` |
 | Termo novo do domínio | `CONTEXT.md` | |
@@ -172,6 +173,7 @@ Fluxo completo de uma feature nova: `ai/playbooks/nova-feature.md`.
 
 - Conventional Commits em português (`feat(todos): adiciona filtro por status`).
 - Commit e PR sem menção a IA nem `Co-Authored-By`.
+- Trabalhe em branch e entregue por PR. O CI roda no PR e na `main`; sem CI verde, a tarefa não terminou. Fluxo completo em `ai/playbooks/configurar-ci-cd.md`.
 
 ## Verificação de documentação
 
