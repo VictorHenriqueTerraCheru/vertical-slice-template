@@ -52,7 +52,7 @@ while IFS= read -r -d '' path; do
 done < <(git ls-files -z)
 
 if [ "$name" != "Starter" ]; then
-  find src tests -mindepth 1 -maxdepth 1 -name '*Starter*' -exec rm -rf {} +
+  find src tests -mindepth 1 -maxdepth 1 \( -name 'Starter.Api' -o -name 'Starter.Api.Tests' \) -exec rm -rf {} +
 fi
 
 find . -depth -type d -empty -not -path "./.git/*" -delete

@@ -102,6 +102,14 @@ commit_all "$clone"
 expect_refusal "rename repetido diz que não há o que renomear" "nada a renomear" "$clone" bash tools/rename-project.sh Acme
 
 clone="$(fresh_clone)"
+expect_success "rename MyStarter" "$clone" bash tools/rename-project.sh MyStarter
+if [ -d "$clone/src/MyStarter.Api" ] && [ -d "$clone/tests/MyStarter.Api.Tests" ]; then
+  pass "rename MyStarter mantém src/MyStarter.Api e tests/MyStarter.Api.Tests"
+else
+  fail "rename MyStarter apagou ou não criou as pastas do projeto"
+fi
+
+clone="$(fresh_clone)"
 bash -c "cd '$clone' && bash tools/rename-project.sh Acme" >/dev/null
 commit_all "$clone"
 cp "$clone/tools/archive-example.sh" "$work/archive-copy.sh"
