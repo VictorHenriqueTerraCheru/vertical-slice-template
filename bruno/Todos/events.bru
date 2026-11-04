@@ -1,0 +1,15 @@
+meta {
+  name: List events
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/v1/todos/{{todoId}}/events
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

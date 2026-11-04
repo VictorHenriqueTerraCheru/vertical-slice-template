@@ -1,0 +1,26 @@
+meta {
+  name: Create
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/todos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "title": "Comprar leite",
+    "description": "Integral"
+  }
+}
+
+script:post-response {
+  bru.setEnvVar("todoId", res.body.id);
+}

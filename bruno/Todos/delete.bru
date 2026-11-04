@@ -1,0 +1,15 @@
+meta {
+  name: Delete
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/todos/{{todoId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

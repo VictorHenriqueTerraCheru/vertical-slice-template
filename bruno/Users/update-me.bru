@@ -1,0 +1,21 @@
+meta {
+  name: Update me
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{baseUrl}}/api/v1/me
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "name": "Sample User"
+  }
+}

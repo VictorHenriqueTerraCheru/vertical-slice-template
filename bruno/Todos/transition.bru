@@ -1,0 +1,21 @@
+meta {
+  name: Transition
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/v1/todos/{{todoId}}/transitions
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "status": "inProgress"
+  }
+}

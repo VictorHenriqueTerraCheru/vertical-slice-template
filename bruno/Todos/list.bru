@@ -1,0 +1,15 @@
+meta {
+  name: List
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/todos?status=pending&sortBy=createdAt&sortDirection=desc&page=1&pageSize=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
