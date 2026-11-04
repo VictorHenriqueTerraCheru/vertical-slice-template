@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+
 using Starter.Api.Common;
 using Starter.Api.Persistence;
 

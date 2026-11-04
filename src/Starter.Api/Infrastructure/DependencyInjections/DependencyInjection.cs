@@ -1,5 +1,7 @@
 using FluentValidation;
+
 using Microsoft.EntityFrameworkCore;
+
 using Starter.Api.Auth;
 using Starter.Api.Common;
 using Starter.Api.Health;

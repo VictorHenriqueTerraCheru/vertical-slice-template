@@ -1,6 +1,8 @@
 using System.Net;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+
 using Starter.Api.Common;
 using Starter.Api.Persistence;
 using Starter.Api.Tests.Infra;

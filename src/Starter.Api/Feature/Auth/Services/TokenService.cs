@@ -1,8 +1,10 @@
 using System.Security.Cryptography;
 using System.Text;
+
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
+
 using Starter.Api.Common;
 using Starter.Api.Persistence;
 

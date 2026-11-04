@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+
 using Starter.Api.Tests.Infra;
 
 namespace Starter.Api.Tests.Architecture;

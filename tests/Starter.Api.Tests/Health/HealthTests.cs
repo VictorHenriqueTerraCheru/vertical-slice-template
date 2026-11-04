@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+
 using Starter.Api.Tests.Infra;
 
 namespace Starter.Api.Tests.Health;

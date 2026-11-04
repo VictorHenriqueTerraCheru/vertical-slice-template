@@ -1,7 +1,9 @@
 using System.Security.Claims;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.JsonWebTokens;
+
 using Starter.Api.Auth;
 using Starter.Api.Common;
 using Starter.Api.Persistence;

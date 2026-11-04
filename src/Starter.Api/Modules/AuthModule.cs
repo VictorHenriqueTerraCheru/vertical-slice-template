@@ -1,5 +1,7 @@
 using System.Security.Claims;
+
 using Microsoft.AspNetCore.Http.HttpResults;
+
 using Starter.Api.Auth;
 using Starter.Api.Common;
 
@@ -14,12 +16,14 @@ public sealed class AuthModule : IEndpointModule
 
         group.MapPost("/register", RegisterAsync)
             .AllowAnonymous()
+            .RequireRateLimiting(RateLimitPolicies.Auth)
             .Validate<RegisterRequest>()
             .WithSummary("Cria uma conta e devolve os tokens de acesso")
             .ProducesProblem(StatusCodes.Status409Conflict);
 
         group.MapPost("/login", LoginAsync)
             .AllowAnonymous()
+            .RequireRateLimiting(RateLimitPolicies.Auth)
             .Validate<LoginRequest>()
             .WithSummary("Autentica com e-mail e senha e devolve os tokens de acesso")
             .ProducesProblem(StatusCodes.Status401Unauthorized);
@@ -35,6 +39,7 @@ public sealed class AuthModule : IEndpointModule
 
         group.MapPost("/forgot-password", ForgotPasswordAsync)
             .AllowAnonymous()
+            .RequireRateLimiting(RateLimitPolicies.Auth)
             .Validate<ForgotPasswordRequest>()
             .WithSummary("Envia o link de redefinição de senha quando a conta existe; a resposta é sempre a mesma");
 

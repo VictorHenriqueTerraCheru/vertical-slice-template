@@ -1,7 +1,9 @@
 using System.Net;
+
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+
 using Starter.Api.Persistence;
 using Starter.Api.Tests.Infra;
 using Starter.Api.Todos;

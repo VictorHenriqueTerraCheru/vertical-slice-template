@@ -1,4 +1,5 @@
 using System.Text.Json;
+
 using Starter.Api.Tests.Infra;
 
 namespace Starter.Api.Tests.Todos;

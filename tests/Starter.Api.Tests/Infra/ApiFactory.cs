@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
+
 using Starter.Api.Common;
 using Starter.Api.Persistence;
+
 using Testcontainers.PostgreSql;
 
 namespace Starter.Api.Tests.Infra;

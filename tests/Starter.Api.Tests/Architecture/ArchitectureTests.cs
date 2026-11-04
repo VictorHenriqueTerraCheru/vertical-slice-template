@@ -1,6 +1,8 @@
 using System.Reflection;
+
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+
 using Starter.Api.Persistence;
 
 namespace Starter.Api.Tests.Architecture;

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+
 using Starter.Api.Persistence;
 using Starter.Api.Tests.Infra;
 using Starter.Api.Todos;

@@ -1,4 +1,5 @@
 using System.Net;
+
 using Starter.Api.Common;
 using Starter.Api.Tests.Infra;
 using Starter.Api.Users;

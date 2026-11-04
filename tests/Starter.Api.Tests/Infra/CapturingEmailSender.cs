@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+
 using Starter.Api.Common;
 
 namespace Starter.Api.Tests.Infra;

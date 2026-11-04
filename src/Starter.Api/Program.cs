@@ -1,5 +1,6 @@
 using Starter.Api.Common;
 using Starter.Api.Infrastructure;
+using Starter.Api.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,14 +17,21 @@ catch (InvalidOperationException exception)
 
 builder.Services
     .AddApplication(configuration)
+    .AddProxy()
+    .AddCorsPolicy(configuration)
+    .AddRateLimiting(configuration)
     .AddOpenApiDocumentation()
     .AddAuthenticationAndAuthorization(configuration);
 
 var app = builder.Build();
 
+app.UseProxy();
 app.UseErrorHandling();
+app.UseSecurityHeaders();
+app.UseCorsPolicy();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiting();
 
 if (configuration.Environment != EnvironmentNames.Production)
 {
@@ -31,6 +39,16 @@ if (configuration.Environment != EnvironmentNames.Production)
 }
 
 app.MapEndpoints();
+
+switch (configuration.Environment)
+{
+    case EnvironmentNames.Development:
+        await DevelopmentSeed.RunAsync(app.Services, app.Lifetime.ApplicationStopping);
+        break;
+    case EnvironmentNames.Staging or EnvironmentNames.Production:
+        await ProductionStartup.RunAsync(app.Services, configuration, app.Lifetime.ApplicationStopping);
+        break;
+}
 
 await app.RunAsync();
 return 0;

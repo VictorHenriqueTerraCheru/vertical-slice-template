@@ -1,4 +1,5 @@
 using FluentValidation;
+
 using Starter.Api.Common;
 using Starter.Api.Users;
 

@@ -1,5 +1,7 @@
 using System.Net;
+
 using Microsoft.EntityFrameworkCore;
+
 using Starter.Api.Auth;
 using Starter.Api.Persistence;
 using Starter.Api.Tests.Infra;

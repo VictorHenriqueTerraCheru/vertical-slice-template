@@ -1,6 +1,8 @@
 using System.Net;
 using System.Text.RegularExpressions;
+
 using Microsoft.AspNetCore.WebUtilities;
+
 using Starter.Api.Auth;
 using Starter.Api.Tests.Infra;
 

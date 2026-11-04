@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+
 using Starter.Api.Persistence;
 
 namespace Starter.Api.Auth;

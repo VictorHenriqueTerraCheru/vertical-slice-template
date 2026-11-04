@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Configuration;
+
 using Starter.Api.Common;
 
 namespace Starter.Api.Tests.Common;

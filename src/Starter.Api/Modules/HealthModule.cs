@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http.HttpResults;
+
 using Starter.Api.Common;
 using Starter.Api.Health;
 

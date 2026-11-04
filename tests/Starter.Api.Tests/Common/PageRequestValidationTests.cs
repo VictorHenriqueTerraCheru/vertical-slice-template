@@ -1,4 +1,5 @@
 using FluentValidation;
+
 using Starter.Api.Common;
 
 namespace Starter.Api.Tests.Common;

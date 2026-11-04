@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+
 using Starter.Api.Common;
 using Starter.Api.Infrastructure;
 

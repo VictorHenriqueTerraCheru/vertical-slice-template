@@ -1,10 +1,13 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
+
 using Scalar.AspNetCore;
+
 using Starter.Api.Common;
 
 namespace Starter.Api.Infrastructure;

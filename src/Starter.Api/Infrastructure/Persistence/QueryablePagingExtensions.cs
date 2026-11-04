@@ -1,5 +1,7 @@
 using System.Linq.Expressions;
+
 using Microsoft.EntityFrameworkCore;
+
 using Starter.Api.Common;
 
 namespace Starter.Api.Persistence;

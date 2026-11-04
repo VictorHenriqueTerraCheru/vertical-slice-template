@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+
 using Starter.Api.Common;
 
 namespace Starter.Api.Persistence;
