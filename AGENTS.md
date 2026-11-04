@@ -4,6 +4,8 @@ Fonte única das regras do repositório. Qualquer IA lê este arquivo. Os `AGENT
 
 API .NET 10 em vertical slice, projeto único: `Module → Service → Repository → AppDbContext`. Exemplos reais: `Auth` (Identity + JWT) e `Todos` (CRUD, regra pura, transação com dois repositories, paginação). Copie o estilo deles.
 
+**Vai usar esta arquitetura em outro repositório?** Copiar ou adaptar por conta própria quebra o renomear e o arquivamento do exemplo: siga `ai/playbooks/levar-para-repositorio.md`. Para começar um projeto neste próprio clone, siga `ai/playbooks/iniciar-projeto.md`.
+
 ## Comandos
 
 ```bash

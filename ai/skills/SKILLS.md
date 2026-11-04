@@ -7,6 +7,7 @@ Skills do Claude Code ficam em `.claude/skills/`. Os roteiros em `ai/playbooks/`
 | Skill | Quando usar | Roteiro |
 |---|---|---|
 | `iniciar-projeto` | começar um projeto a partir de uma descrição | `ai/playbooks/iniciar-projeto.md` |
+| `levar-para-repositorio` | iniciar um projeto em outro repositório usando este template como base | `ai/playbooks/levar-para-repositorio.md` |
 | `nova-feature` | criar uma área ou funcionalidade | `ai/playbooks/nova-feature.md` |
 | `nova-migration` | alterar o schema | `ai/playbooks/nova-migration.md` |
 | `revisar-arquitetura` | conferir um diff contra as regras | `ai/playbooks/revisar-arquitetura.md` |
