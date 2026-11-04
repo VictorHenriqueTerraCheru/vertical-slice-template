@@ -1,4 +1,8 @@
 using System.Net;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Starter.Api.Common;
+using Starter.Api.Persistence;
 using Starter.Api.Tests.Infra;
 using Starter.Api.Todos;
 
@@ -145,6 +149,41 @@ public sealed class TodoCrudTests(ApiFactory factory)
         var response = await client.PostRawAsync("{\"title\": ");
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.Content.Headers.ContentType!.MediaType.Should().Be("application/problem+json");
+    }
+
+    [Fact]
+    public async Task Stale_write_after_a_change_through_the_api_is_rejected_with_409()
+    {
+        var client = await TodoClient.ForNewUserAsync(factory);
+        var created = await client.CreateOkAsync("Original");
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+        var stale = await db.Set<TodoItem>().FirstAsync(item => item.Id == created.Id);
+
+        (await client.UpdateAsync(created.Id, "Changed through the API")).StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await unitOfWork.ExecuteInTransactionAsync<Empty>(_ =>
+        {
+            stale.Title = "Stale write";
+            return Task.FromResult<Result<Empty>>(new Empty());
+        }, CancellationToken.None);
+
+        result.Error.Should().Be(CommonErrors.ConcurrentChange);
+        (await TodoDatabase.FindAsync(factory, created.Id))!.Title.Should().Be("Changed through the API");
+    }
+
+    [Fact]
+    public async Task Whitespace_only_description_is_stored_as_null()
+    {
+        var client = await TodoClient.ForNewUserAsync(factory);
+
+        var created = await client.CreateOkAsync("Title", "   ");
+        var updated = await TodoClient.ReadAsync<TodoItemResponse>(await client.UpdateAsync(created.Id, "Title", " \t "));
+
+        created.Description.Should().BeNull();
+        updated.Description.Should().BeNull();
+        (await TodoDatabase.FindAsync(factory, created.Id))!.Description.Should().BeNull();
     }
 
     [Fact]

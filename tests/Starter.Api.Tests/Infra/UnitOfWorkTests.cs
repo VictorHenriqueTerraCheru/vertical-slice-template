@@ -138,33 +138,8 @@ public sealed class UnitOfWorkTests(ApiFactory factory)
         var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
         db.Set<User>().Add(user);
-        var result = await unitOfWork.SaveChangesAsync(CancellationToken.None);
+        await unitOfWork.SaveChangesAsync(CancellationToken.None);
 
-        result.Success.Should().BeTrue();
         (await ExistsAsync(user.Id)).Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task SaveChangesAsync_turns_a_concurrency_conflict_into_a_409_error_and_clears_the_tracker()
-    {
-        var user = NewUser($"{Guid.NewGuid()}@example.com");
-        await factory.InDatabaseAsync(async db =>
-        {
-            db.Set<User>().Add(user);
-            await db.SaveChangesAsync();
-        });
-        await using var scope = factory.Services.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-        var tracked = await db.Set<User>().FirstAsync(row => row.Id == user.Id);
-        await factory.InDatabaseAsync(other => other.Set<User>()
-            .Where(row => row.Id == user.Id)
-            .ExecuteUpdateAsync(set => set.SetProperty(row => row.ConcurrencyStamp, Guid.NewGuid().ToString())));
-
-        tracked.Name = "Changed";
-        var result = await unitOfWork.SaveChangesAsync(CancellationToken.None);
-
-        result.Error.Should().Be(CommonErrors.ConcurrentChange);
-        db.ChangeTracker.Entries().Should().BeEmpty();
     }
 }

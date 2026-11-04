@@ -15,7 +15,12 @@ public static class QueryablePagingExtensions
         Expression<Func<T, object>> tieBreaker)
     {
         var lookup = new Dictionary<string, Expression<Func<T, object>>>(sortable, StringComparer.OrdinalIgnoreCase);
-        var key = request.SortBy is not null && lookup.ContainsKey(request.SortBy) ? request.SortBy : defaultField;
+        var key = request.SortBy ?? defaultField;
+        if (!lookup.ContainsKey(key))
+        {
+            throw new ArgumentException($"The sort field '{key}' is not in the sortable map.", nameof(sortable));
+        }
+
         var direction = request.SortDirection?.Value ?? defaultDirection;
         var ordered = direction == SortDirection.Desc ? query.OrderByDescending(lookup[key]) : query.OrderBy(lookup[key]);
         return ordered.ThenBy(tieBreaker);

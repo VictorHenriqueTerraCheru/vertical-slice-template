@@ -210,6 +210,9 @@ public sealed class TodoListingTests(ApiFactory factory)
     {
         var client = await TodoClient.ForNewUserAsync(factory);
 
-        (await client.GetPathAsync("/api/v1/todos/not-a-guid")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var response = await client.GetPathAsync("/api/v1/todos/not-a-guid");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        response.Content.Headers.ContentType!.MediaType.Should().Be("application/problem+json");
     }
 }

@@ -13,19 +13,14 @@ public sealed class TodoService(ITodoRepository repository, IUnitOfWork unitOfWo
             Id = Guid.CreateVersion7(now),
             OwnerId = ownerId,
             Title = request.Title.Trim(),
-            Description = request.Description?.Trim(),
+            Description = NormalizeDescription(request.Description),
             Status = TodoStatus.Pending,
             CreatedAt = now,
             UpdatedAt = now,
         };
 
         repository.Add(item);
-        var saved = await unitOfWork.SaveChangesAsync(cancellationToken);
-        if (!saved.Success)
-        {
-            return saved.Error!;
-        }
-
+        await unitOfWork.SaveChangesAsync(cancellationToken);
         return TodoItemResponse.From(item);
     }
 
@@ -43,36 +38,34 @@ public sealed class TodoService(ITodoRepository repository, IUnitOfWork unitOfWo
     public async Task<Result<PagedResponse<TodoItemResponse>>> ListAsync(Guid ownerId, ListTodosRequest request, CancellationToken cancellationToken) =>
         await repository.ListAsync(ownerId, request, cancellationToken);
 
-    public async Task<Result<TodoItemResponse>> UpdateAsync(Guid ownerId, Guid id, UpdateTodoRequest request, CancellationToken cancellationToken)
-    {
-        var item = await repository.FindAsync(ownerId, id, cancellationToken);
-        if (item is null)
+    public Task<Result<TodoItemResponse>> UpdateAsync(Guid ownerId, Guid id, UpdateTodoRequest request, CancellationToken cancellationToken) =>
+        unitOfWork.ExecuteInTransactionAsync<TodoItemResponse>(async token =>
         {
-            return ApplicationError.NotFound;
-        }
+            var item = await repository.FindAsync(ownerId, id, token);
+            if (item is null)
+            {
+                return ApplicationError.NotFound;
+            }
 
-        item.Title = request.Title.Trim();
-        item.Description = request.Description?.Trim();
-        item.UpdatedAt = clock.GetUtcNow();
+            item.Title = request.Title.Trim();
+            item.Description = NormalizeDescription(request.Description);
+            item.UpdatedAt = clock.GetUtcNow();
+            return TodoItemResponse.From(item);
+        }, cancellationToken);
 
-        var saved = await unitOfWork.SaveChangesAsync(cancellationToken);
-        if (!saved.Success)
+    public Task<Result<Empty>> DeleteAsync(Guid ownerId, Guid id, CancellationToken cancellationToken) =>
+        unitOfWork.ExecuteInTransactionAsync<Empty>(async token =>
         {
-            return saved.Error!;
-        }
+            var item = await repository.FindAsync(ownerId, id, token);
+            if (item is null)
+            {
+                return ApplicationError.NotFound;
+            }
 
-        return TodoItemResponse.From(item);
-    }
+            repository.Remove(item);
+            return new Empty();
+        }, cancellationToken);
 
-    public async Task<Result<Empty>> DeleteAsync(Guid ownerId, Guid id, CancellationToken cancellationToken)
-    {
-        var item = await repository.FindAsync(ownerId, id, cancellationToken);
-        if (item is null)
-        {
-            return ApplicationError.NotFound;
-        }
-
-        repository.Remove(item);
-        return await unitOfWork.SaveChangesAsync(cancellationToken);
-    }
+    private static string? NormalizeDescription(string? description) =>
+        string.IsNullOrWhiteSpace(description) ? null : description.Trim();
 }

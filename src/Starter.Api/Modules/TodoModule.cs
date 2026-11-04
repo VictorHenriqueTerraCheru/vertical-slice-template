@@ -37,19 +37,22 @@ public sealed class TodoModule : IEndpointModule
         CreateTodoRequest request, ClaimsPrincipal user, ITodoService service, CancellationToken ct)
     {
         var result = await service.CreateAsync(user.GetUserId(), request, ct);
-        if (result.Success)
+        return result.Error switch
         {
-            return TypedResults.Created($"/api/v1/todos/{result.Value!.Id}", result.Value);
-        }
-
-        return result.Error!.ToProblem();
+            null => TypedResults.Created($"/api/v1/todos/{result.Value!.Id}", result.Value),
+            var error => error.ToProblem(),
+        };
     }
 
-    private static async Task<Ok<PagedResponse<TodoItemResponse>>> ListAsync(
+    private static async Task<Results<Ok<PagedResponse<TodoItemResponse>>, ProblemHttpResult>> ListAsync(
         [AsParameters] ListTodosRequest request, ClaimsPrincipal user, ITodoService service, CancellationToken ct)
     {
         var result = await service.ListAsync(user.GetUserId(), request, ct);
-        return TypedResults.Ok(result.Value!);
+        return result.Error switch
+        {
+            null => TypedResults.Ok(result.Value!),
+            var error => error.ToProblem(),
+        };
     }
 
     private static async Task<Results<Ok<TodoItemResponse>, NotFound>> GetAsync(
@@ -67,33 +70,23 @@ public sealed class TodoModule : IEndpointModule
         Guid id, UpdateTodoRequest request, ClaimsPrincipal user, ITodoService service, CancellationToken ct)
     {
         var result = await service.UpdateAsync(user.GetUserId(), id, request, ct);
-        if (result.Success)
+        return result.Error switch
         {
-            return TypedResults.Ok(result.Value!);
-        }
-
-        if (result.Error!.Kind == ErrorType.NotFound)
-        {
-            return result.Error.ToNotFound();
-        }
-
-        return result.Error.ToProblem();
+            null => TypedResults.Ok(result.Value!),
+            { Kind: ErrorType.NotFound } error => error.ToNotFound(),
+            var error => error.ToProblem(),
+        };
     }
 
     private static async Task<Results<NoContent, NotFound, ProblemHttpResult>> DeleteAsync(
         Guid id, ClaimsPrincipal user, ITodoService service, CancellationToken ct)
     {
         var result = await service.DeleteAsync(user.GetUserId(), id, ct);
-        if (result.Success)
+        return result.Error switch
         {
-            return TypedResults.NoContent();
-        }
-
-        if (result.Error!.Kind == ErrorType.NotFound)
-        {
-            return result.Error.ToNotFound();
-        }
-
-        return result.Error.ToProblem();
+            null => TypedResults.NoContent(),
+            { Kind: ErrorType.NotFound } error => error.ToNotFound(),
+            var error => error.ToProblem(),
+        };
     }
 }

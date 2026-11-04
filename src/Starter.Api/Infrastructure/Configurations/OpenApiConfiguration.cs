@@ -1,8 +1,11 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
+using Starter.Api.Common;
 
 namespace Starter.Api.Infrastructure;
 
@@ -29,6 +32,7 @@ public static class OpenApiConfiguration
 
             options.AddOperationTransformer((operation, context, _) =>
             {
+                FillQueryEnumValues(operation, context.Description);
                 foreach (var parameter in operation.Parameters?.OfType<OpenApiParameter>() ?? [])
                 {
                     if (parameter.In == ParameterLocation.Query && parameter.Name is { Length: > 0 } name)
@@ -49,6 +53,26 @@ public static class OpenApiConfiguration
                 return Task.CompletedTask;
             });
         });
+
+    private static void FillQueryEnumValues(OpenApiOperation operation, ApiDescription description)
+    {
+        foreach (var described in description.ParameterDescriptions)
+        {
+            var type = Nullable.GetUnderlyingType(described.Type) ?? described.Type;
+            if (!type.IsGenericType || type.GetGenericTypeDefinition() != typeof(QueryEnum<>))
+            {
+                continue;
+            }
+
+            var parameter = operation.Parameters?.OfType<OpenApiParameter>().FirstOrDefault(candidate => candidate.Name == described.Name);
+            if (parameter?.Schema is OpenApiSchema schema)
+            {
+                schema.Enum = Enum.GetNames(type.GetGenericArguments()[0])
+                    .Select(name => (JsonNode)JsonValue.Create(JsonNamingPolicy.CamelCase.ConvertName(name)))
+                    .ToList();
+            }
+        }
+    }
 
     public static WebApplication MapOpenApiDocumentation(this WebApplication app)
     {
