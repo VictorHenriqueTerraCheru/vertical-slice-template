@@ -36,6 +36,33 @@ public sealed class AuthService(
         return pair;
     }
 
+    public Task<Result<TokenPair>> RefreshAsync(RefreshRequest request, CancellationToken cancellationToken) =>
+        unitOfWork.ExecuteInTransactionAsync<TokenPair>(async token =>
+        {
+            var now = clock.GetUtcNow();
+            var stored = await refreshTokens.FindByHashAsync(tokens.Hash(request.RefreshToken), token);
+            if (stored is null || stored.ExpiresAt <= now)
+            {
+                return AuthErrors.InvalidRefreshToken;
+            }
+
+            if (!await refreshTokens.RevokeIfActiveAsync(stored.Id, now, token))
+            {
+                return AuthErrors.InvalidRefreshToken;
+            }
+
+            var user = await users.FindUnlockedAsync(stored.UserId, token);
+            if (!user.Success)
+            {
+                return AuthErrors.InvalidRefreshToken;
+            }
+
+            return IssuePair(user.Value!);
+        }, cancellationToken);
+
+    public Task LogoutAsync(Guid userId, CancellationToken cancellationToken) =>
+        refreshTokens.RevokeAllByUserAsync(userId, clock.GetUtcNow(), cancellationToken);
+
     private TokenPair IssuePair(User user)
     {
         var access = tokens.CreateAccessToken(user);

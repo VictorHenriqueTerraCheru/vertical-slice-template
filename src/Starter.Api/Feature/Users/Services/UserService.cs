@@ -50,6 +50,22 @@ public sealed class UserService(IUserRepository repository, TimeProvider clock) 
         return repository.CreateAsync(user, password, cancellationToken);
     }
 
+    public async Task<Result<User>> FindUnlockedAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var user = await repository.FindByIdAsync(userId, cancellationToken);
+        if (user is null)
+        {
+            return ApplicationError.NotFound;
+        }
+
+        if (await repository.IsLockedOutAsync(user, cancellationToken))
+        {
+            return ApplicationError.Unauthorized;
+        }
+
+        return user;
+    }
+
     public async Task<Result<User>> VerifyCredentialsAsync(string email, string password, CancellationToken cancellationToken)
     {
         var user = await repository.FindByEmailAsync(email.Trim(), cancellationToken);

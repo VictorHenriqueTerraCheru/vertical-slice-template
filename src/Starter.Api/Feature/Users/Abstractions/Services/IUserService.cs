@@ -11,5 +11,7 @@ public interface IUserService
 
     Task<Result<User>> CreateAsync(string name, string email, string password, CancellationToken cancellationToken);
 
+    Task<Result<User>> FindUnlockedAsync(Guid userId, CancellationToken cancellationToken);
+
     Task<Result<User>> VerifyCredentialsAsync(string email, string password, CancellationToken cancellationToken);
 }

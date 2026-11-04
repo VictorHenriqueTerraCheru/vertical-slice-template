@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Starter.Api.Auth;
 using Starter.Api.Common;
@@ -22,6 +23,15 @@ public sealed class AuthModule : IEndpointModule
             .Validate<LoginRequest>()
             .WithSummary("Autentica com e-mail e senha e devolve os tokens de acesso")
             .ProducesProblem(StatusCodes.Status401Unauthorized);
+
+        group.MapPost("/refresh", RefreshAsync)
+            .AllowAnonymous()
+            .Validate<RefreshRequest>()
+            .WithSummary("Troca um refresh token por um novo par de tokens e invalida o anterior")
+            .ProducesProblem(StatusCodes.Status401Unauthorized);
+
+        group.MapPost("/logout", LogoutAsync)
+            .WithSummary("Encerra todas as sessões da conta autenticada");
     }
 
     private static async Task<Results<Created<TokenPair>, ProblemHttpResult>> RegisterAsync(
@@ -44,5 +54,23 @@ public sealed class AuthModule : IEndpointModule
             null => TypedResults.Ok(result.Value!),
             var error => error.ToProblem(),
         };
+    }
+
+    private static async Task<Results<Ok<TokenPair>, ProblemHttpResult>> RefreshAsync(
+        RefreshRequest request, IAuthService service, CancellationToken ct)
+    {
+        var result = await service.RefreshAsync(request, ct);
+        return result.Error switch
+        {
+            null => TypedResults.Ok(result.Value!),
+            var error => error.ToProblem(),
+        };
+    }
+
+    private static async Task<NoContent> LogoutAsync(
+        ClaimsPrincipal user, IAuthService service, CancellationToken ct)
+    {
+        await service.LogoutAsync(user.GetUserId(), ct);
+        return TypedResults.NoContent();
     }
 }

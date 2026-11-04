@@ -7,6 +7,8 @@ public interface IUserRepository
 {
     Task<User?> FindByIdAsync(Guid id, CancellationToken cancellationToken);
 
+    Task<bool> IsLockedOutAsync(User user, CancellationToken cancellationToken);
+
     Task<User?> FindByEmailAsync(string email, CancellationToken cancellationToken);
 
     Task<Result<User>> CreateAsync(User user, string password, CancellationToken cancellationToken);

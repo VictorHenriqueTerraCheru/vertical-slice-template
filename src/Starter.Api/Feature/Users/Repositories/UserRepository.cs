@@ -13,6 +13,9 @@ public sealed class UserRepository(
     public Task<User?> FindByIdAsync(Guid id, CancellationToken cancellationToken) =>
         db.Set<User>().FirstOrDefaultAsync(user => user.Id == id, cancellationToken);
 
+    public Task<bool> IsLockedOutAsync(User user, CancellationToken cancellationToken) =>
+        users.IsLockedOutAsync(user);
+
     public Task<User?> FindByEmailAsync(string email, CancellationToken cancellationToken) =>
         users.FindByEmailAsync(email);
 

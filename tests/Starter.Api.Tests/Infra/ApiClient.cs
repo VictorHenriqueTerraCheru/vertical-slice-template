@@ -17,6 +17,11 @@ public sealed class ApiClient(HttpClient http)
     public Task<HttpResponseMessage> LoginAsync(string email, string password) =>
         http.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(email, password), Json);
 
+    public Task<HttpResponseMessage> RefreshAsync(string refreshToken) =>
+        http.PostAsJsonAsync("/api/v1/auth/refresh", new RefreshRequest(refreshToken), Json);
+
+    public Task<HttpResponseMessage> LogoutAsync() => http.PostAsync("/api/v1/auth/logout", null);
+
     public Task<HttpResponseMessage> GetMeAsync() => http.GetAsync("/api/v1/me");
 
     public Task<HttpResponseMessage> UpdateMeAsync(string name) =>
