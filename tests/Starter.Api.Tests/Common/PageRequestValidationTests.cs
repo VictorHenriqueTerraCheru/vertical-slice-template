@@ -10,9 +10,13 @@ public sealed class PageRequestValidationTests
         public TestValidator() => this.AddPageRules(["createdAt", "name"]);
     }
 
-    public PageRequestValidationTests() => ValidationExtensions.ConfigureGlobal();
+    private readonly TestValidator _validator;
 
-    private static readonly TestValidator Validator = new();
+    public PageRequestValidationTests()
+    {
+        ValidationExtensions.ConfigureGlobal();
+        _validator = new TestValidator();
+    }
 
     [Theory]
     [InlineData(0)]
@@ -20,7 +24,7 @@ public sealed class PageRequestValidationTests
     [InlineData(10_001)]
     public void Page_out_of_range_is_invalid(int page)
     {
-        var result = Validator.Validate(new PageRequest { Page = page });
+        var result = _validator.Validate(new PageRequest { Page = page });
 
         result.Errors.Should().ContainSingle().Which.PropertyName.Should().Be("page");
     }
@@ -30,7 +34,7 @@ public sealed class PageRequestValidationTests
     [InlineData(101)]
     public void PageSize_out_of_range_is_invalid(int size)
     {
-        var result = Validator.Validate(new PageRequest { PageSize = size });
+        var result = _validator.Validate(new PageRequest { PageSize = size });
 
         result.Errors.Should().ContainSingle().Which.PropertyName.Should().Be("pageSize");
     }
@@ -38,7 +42,7 @@ public sealed class PageRequestValidationTests
     [Fact]
     public void Unknown_SortBy_is_invalid()
     {
-        var result = Validator.Validate(new PageRequest { SortBy = "password" });
+        var result = _validator.Validate(new PageRequest { SortBy = "password" });
 
         result.Errors.Should().ContainSingle().Which.PropertyName.Should().Be("sortBy");
     }
@@ -46,12 +50,12 @@ public sealed class PageRequestValidationTests
     [Fact]
     public void SortBy_ignores_case()
     {
-        Validator.Validate(new PageRequest { SortBy = "CREATEDAT" }).IsValid.Should().BeTrue();
+        _validator.Validate(new PageRequest { SortBy = "CREATEDAT" }).IsValid.Should().BeTrue();
     }
 
     [Fact]
     public void Default_values_are_valid()
     {
-        Validator.Validate(new PageRequest()).IsValid.Should().BeTrue();
+        _validator.Validate(new PageRequest()).IsValid.Should().BeTrue();
     }
 }

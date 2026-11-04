@@ -1,8 +1,10 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Starter.Api.Auth;
 using Starter.Api.Common;
 using Starter.Api.Health;
 using Starter.Api.Persistence;
+using Starter.Api.Users;
 
 namespace Starter.Api.Infrastructure;
 
@@ -37,12 +39,17 @@ public static class DependencyInjection
     public static IServiceCollection AddRepositories(this IServiceCollection services)
     {
         services.AddScoped<IHealthRepository, HealthRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         return services;
     }
 
     public static IServiceCollection AddServices(this IServiceCollection services)
     {
         services.AddScoped<IHealthService, HealthService>();
+        services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IAuthService, AuthService>();
+        services.AddSingleton<ITokenService, TokenService>();
         return services;
     }
 }

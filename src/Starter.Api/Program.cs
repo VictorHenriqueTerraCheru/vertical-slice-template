@@ -17,7 +17,7 @@ catch (InvalidOperationException exception)
 builder.Services
     .AddApplication(configuration)
     .AddOpenApiDocumentation()
-    .AddAuthenticationAndAuthorization();
+    .AddAuthenticationAndAuthorization(configuration);
 
 var app = builder.Build();
 
