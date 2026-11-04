@@ -6,6 +6,8 @@ Por que: segurança de senha é do Identity, não escrita à mão; o refresh em 
 
 ## Limites conhecidos
 
+- O IP do cliente (rate limit) só é lido de `X-Forwarded-For` quando a conexão vem de uma rede listada em `TRUSTED_PROXY_NETWORKS` (CIDR separados por vírgula). Vazio significa não confiar em proxy algum; um CIDR inválido impede a inicialização. Sem essa configuração atrás de um proxy, todos os clientes aparecem com o IP do proxy.
+- O cadastro público não confirma o e-mail. Por isso `INITIAL_ADMIN_EMAIL` só promove uma conta já existente se `INITIAL_ADMIN_PASSWORD` for a senha dela.
 - O token de recuperação depende das chaves do Data Protection, que não são persistidas. Ele expira a cada reinício da API, e várias instâncias precisam de chaves persistidas e compartilhadas.
 - `login` e `forgot-password` têm diferenças de tempo de resposta que podem sugerir se a conta existe. O rate limit por IP mitiga, não elimina.
 - Logins falhos simultâneos podem contar menos falhas do que ocorreram, e o bloqueio demorar a disparar.

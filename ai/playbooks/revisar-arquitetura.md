@@ -6,7 +6,7 @@ Confira o diff contra as regras de `AGENTS.md`. Rode `git diff <base>...HEAD` e 
 
 - Module tem só HTTP, handlers `private static ...Async`, `switch` sobre o resultado, `Results<...>` tipado e `.Validate<T>()` onde há corpo ou query.
 - Service não recebe `AppDbContext`, `UserManager`, `HttpContext` nem usa `IQueryable`.
-- Repository não chama `SaveChanges`, não devolve `IQueryable`, filtra pelo dono.
+- Repository não chama `SaveChanges`, não devolve `IQueryable`, filtra pelo dono. Exceções legítimas: coleção filha pequena e limitada, com o dono conferido no service através do pai (`TodoEventRepository.ListAsync`), e rotas de administrador, sem filtro por política (`ListAllAsync`).
 - Uma feature usa outra pelo service, nunca pelo repository. Sem ciclo; `Common` não depende de feature.
 - `UserManager` só em `Feature/Users/Repositories/UserRepository.cs` e `Infrastructure/Persistence`.
 

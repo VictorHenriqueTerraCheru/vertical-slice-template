@@ -13,6 +13,11 @@ if ! [[ "$name" =~ ^[A-Z][A-Za-z0-9]*$ ]]; then
   exit 1
 fi
 
+if [ "$(printf '%s' "$name" | tr -cd 'A-Za-z' | wc -c)" -lt 3 ]; then
+  echo "Nome inválido: '$name'. Use ao menos 3 letras." >&2
+  exit 1
+fi
+
 cd "$(git rev-parse --show-toplevel)"
 
 if [ -n "$(git status --porcelain)" ]; then
@@ -45,6 +50,10 @@ while IFS= read -r -d '' path; do
     git mv "$path" "$target"
   fi
 done < <(git ls-files -z)
+
+if [ "$name" != "Starter" ]; then
+  find src tests -mindepth 1 -maxdepth 1 -name '*Starter*' -exec rm -rf {} +
+fi
 
 find . -depth -type d -empty -not -path "./.git/*" -delete
 

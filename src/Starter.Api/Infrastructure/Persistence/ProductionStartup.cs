@@ -32,6 +32,12 @@ public static class ProductionStartup
             return;
         }
 
+        if (!await users.CheckPasswordAsync(existing, configuration.InitialAdminPassword))
+        {
+            throw new InvalidOperationException(
+                $"The account {configuration.InitialAdminEmail} already exists and {ConfigurationKeys.InitialAdminPassword} does not match its password. Refusing to promote it.");
+        }
+
         if (existing.Role != UserRole.Administrator)
         {
             existing.Role = UserRole.Administrator;

@@ -74,14 +74,71 @@ public sealed class EnvironmentConfigurationTests
         act.Should().Throw<InvalidOperationException>().WithMessage("*JWT_KEY*");
     }
 
-    [Fact]
-    public void Production_rejects_the_example_key()
+    [Theory]
+    [InlineData("Staging")]
+    [InlineData("Production")]
+    public void Staging_and_Production_reject_the_example_key(string environment)
     {
         var values = Complete();
         values["JWT_KEY"] = "dev-only-change-me-use-at-least-32-characters";
 
-        var act = () => new EnvironmentConfiguration(Build(values), EnvironmentNames.Production);
+        var act = () => new EnvironmentConfiguration(Build(values), environment);
 
         act.Should().Throw<InvalidOperationException>().WithMessage("*JWT_KEY*");
+    }
+
+    [Theory]
+    [InlineData("Development")]
+    [InlineData("Testing")]
+    public void Development_and_Testing_accept_the_example_key(string environment)
+    {
+        var values = Complete();
+        values["JWT_KEY"] = "dev-only-change-me-use-at-least-32-characters";
+
+        var configuration = new EnvironmentConfiguration(Build(values), environment);
+
+        configuration.JwtKey.Should().StartWith("dev-only-");
+    }
+
+    [Theory]
+    [InlineData("production")]
+    [InlineData("Homolog")]
+    [InlineData("")]
+    public void Unknown_environment_names_are_rejected(string environment)
+    {
+        var act = () => new EnvironmentConfiguration(Build(Complete()), environment);
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*environment*");
+    }
+
+    [Fact]
+    public void Trusted_proxy_networks_are_empty_by_default()
+    {
+        var configuration = new EnvironmentConfiguration(Build(Complete()), EnvironmentNames.Production);
+
+        configuration.TrustedProxyNetworks.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Trusted_proxy_networks_parse_a_comma_separated_list()
+    {
+        var values = Complete();
+        values["TRUSTED_PROXY_NETWORKS"] = "10.0.0.0/8, 192.168.1.0/24";
+
+        var configuration = new EnvironmentConfiguration(Build(values), EnvironmentNames.Production);
+
+        configuration.TrustedProxyNetworks.Select(network => network.ToString())
+            .Should().Equal("10.0.0.0/8", "192.168.1.0/24");
+    }
+
+    [Fact]
+    public void Invalid_trusted_proxy_network_aborts_startup()
+    {
+        var values = Complete();
+        values["TRUSTED_PROXY_NETWORKS"] = "10.0.0.0/8,not-a-cidr";
+
+        var act = () => new EnvironmentConfiguration(Build(values), EnvironmentNames.Production);
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*TRUSTED_PROXY_NETWORKS*");
     }
 }

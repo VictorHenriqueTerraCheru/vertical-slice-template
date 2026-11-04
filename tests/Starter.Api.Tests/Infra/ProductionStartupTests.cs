@@ -56,18 +56,36 @@ public sealed class ProductionStartupTests(ApiFactory factory)
     }
 
     [Fact]
-    public async Task Production_promotes_an_existing_account_with_the_admin_email()
+    public async Task Production_promotes_an_existing_account_when_the_password_matches()
     {
         var existing = await Scenarios.RegisterAsync(factory);
 
-        await RunAsync(existing.Email, "a-different-password-123");
+        await RunAsync(existing.Email, existing.Password);
 
         var promoted = await FindAsync(existing.Email);
         promoted!.Role.Should().Be(UserRole.Administrator);
         promoted.Id.Should().Be(existing.UserId);
-        await using var scope = factory.Services.CreateAsyncScope();
-        var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
-        (await users.CheckPasswordAsync(promoted, existing.Password)).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Production_aborts_when_an_existing_account_has_a_different_password()
+    {
+        var existing = await Scenarios.RegisterAsync(factory);
+
+        var act = () => RunAsync(existing.Email, "a-different-password-123");
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*INITIAL_ADMIN_PASSWORD*");
+        (await FindAsync(existing.Email))!.Role.Should().Be(UserRole.User);
+    }
+
+    [Theory]
+    [InlineData("admin@example.com", null)]
+    [InlineData(null, "a-strong-password-123")]
+    public void Partial_initial_admin_variables_abort_startup(string? email, string? password)
+    {
+        var act = () => ProductionConfiguration(email, password);
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*INITIAL_ADMIN*");
     }
 
     [Fact]

@@ -68,7 +68,7 @@ commit_all() {
 }
 
 clone="$(fresh_clone)"
-for invalid in acme 1Acme Acme-X; do
+for invalid in acme 1Acme Acme-X Ab; do
   expect_refusal "rename recusa o nome $invalid" "inválido" "$clone" bash tools/rename-project.sh "$invalid"
   expect_clean_tree "rename com $invalid não altera nada" "$clone"
 done
@@ -121,6 +121,26 @@ expect_success "build depois do archive" "$clone" dotnet build
 expect_success "testes depois do archive" "$clone" dotnet test --no-build
 commit_all "$clone"
 expect_refusal "archive repetido diz que já foi arquivado" "já arquivado" "$clone" bash "$work/archive-copy.sh"
+
+clone="$(fresh_clone)"
+expect_success "build antes do rename" "$clone" dotnet build
+expect_success "rename TodoApp depois de um build" "$clone" bash tools/rename-project.sh TodoApp
+if [ ! -e "$clone/src/Starter.Api" ] && [ ! -e "$clone/tests/Starter.Api.Tests" ] && [ -d "$clone/src/TodoApp.Api" ]; then
+  pass "rename remove as pastas antigas com bin e obj"
+else
+  fail "rename deixou pastas Starter em src ou tests"
+fi
+commit_all "$clone"
+expect_success "archive com nome contendo Todo" "$clone" bash tools/archive-example.sh
+mold="$clone/ai/moldes/Todos"
+leftover="$(git -C "$clone" grep -nI Todo -- 'src/**/*.cs' 'tests/**/*.cs' | perl -ne 's/TodoApp//g; print if /Todo/' || true)"
+if [ -z "$leftover" ] && [ -f "$mold/Modules/TodoModule.cs" ] && [ -f "$clone/src/TodoApp.Api/Infrastructure/DependencyInjections/DependencyInjection.cs" ]; then
+  pass "archive com TodoApp deixa src e tests sem o exemplo"
+else
+  fail "archive com TodoApp deixou o exemplo ou quebrou a estrutura: $leftover"
+fi
+expect_success "check-docs com TodoApp depois do archive" "$clone" bash tools/check-docs.sh
+expect_success "build com TodoApp depois do archive" "$clone" dotnet build
 
 if [ "$failures" -ne 0 ]; then
   echo "$failures verificação(ões) falharam"

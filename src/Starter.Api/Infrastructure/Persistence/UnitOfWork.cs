@@ -5,7 +5,7 @@ using Starter.Api.Common;
 
 namespace Starter.Api.Persistence;
 
-public sealed class UnitOfWork(AppDbContext context) : IUnitOfWork
+public sealed class UnitOfWork(AppDbContext context, ILogger<UnitOfWork> logger) : IUnitOfWork
 {
     public Task SaveChangesAsync(CancellationToken cancellationToken) => context.SaveChangesAsync(cancellationToken);
 
@@ -48,8 +48,9 @@ public sealed class UnitOfWork(AppDbContext context) : IUnitOfWork
         {
             await transaction.RollbackAsync(CancellationToken.None);
         }
-        catch (Exception)
+        catch (Exception exception)
         {
+            logger.LogWarning(exception, "Transaction rollback failed.");
         }
         finally
         {

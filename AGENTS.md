@@ -66,7 +66,7 @@ Namespaces curtos e fixos: `Starter.Api.<Area>`, `Starter.Api.Common`, `Starter.
 
 ## Paginação
 
-Toda listagem pagina assim, sem alternativa:
+Toda listagem pagina assim, com uma única exceção: coleção filha pequena e naturalmente limitada, como `GET /todos/{id}/events`, pode devolver um array sem paginação, desde que o service confira o dono pelo pai antes de listar. Qualquer outra listagem usa o padrão abaixo:
 
 | Peça | Arquivo |
 |---|---|
@@ -113,7 +113,7 @@ Regras: `page` 1 a 10.000 (padrão 1); `pageSize` 1 a 100 (padrão 20); `sortBy`
 | Regra de negócio | método no service | `Feature/Todos/Services/TodoService.cs` |
 | Regra pura | `Feature/<Area>/Rules/` | `Feature/Todos/Rules/TodoTransitions.cs` |
 | Consulta | método no repository, devolvendo projeção | `Feature/Todos/Repositories/TodoRepository.cs` |
-| Tabela nova | entidade + configuração + `DbSet` + migration | `Infrastructure/Persistence/Entities/TodoEvent.cs`, `Infrastructure/Persistence/Configurations/TodoEventConfiguration.cs`, `Infrastructure/Persistence/AppDbContext.cs` |
+| Tabela nova | entidade + configuração + migration | `Infrastructure/Persistence/Entities/TodoEvent.cs`, `Infrastructure/Persistence/Configurations/TodoEventConfiguration.cs`, `Infrastructure/Persistence/AppDbContext.cs` |
 | Migration | `ai/playbooks/nova-migration.md` | `Infrastructure/Persistence/Migrations/` |
 | Validação | um validator por request | `Feature/Todos/Validators/CreateTodoRequestValidator.cs` |
 | Mensagem de erro | propriedade estática em `<Area>Errors` | `Feature/Todos/Errors/TodoErrors.cs` |
@@ -173,4 +173,4 @@ Fluxo completo de uma feature nova: `ai/playbooks/nova-feature.md`.
 
 ## Verificação de documentação
 
-`tools/check-docs.sh` falha se algum caminho entre crases nos `AGENTS.md`, em `CLAUDE.md` ou nos Markdown de `ai/` não existir. Ao mover arquivo, rode o script.
+`tools/check-docs.sh` falha se algum caminho entre crases (iniciando por `src/`, `tests/`, `ai/`, `tools/`, `docs/`, `bruno/`, `Feature/`, `Common/`, `Modules/` ou `Infrastructure/`) nos `AGENTS.md`, em `CLAUDE.md` ou nos Markdown de `ai/` não existir. Ao mover arquivo, rode o script.

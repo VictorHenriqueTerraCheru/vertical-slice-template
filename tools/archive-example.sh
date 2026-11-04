@@ -13,8 +13,14 @@ if [ -d ai/moldes/Todos ]; then
   exit 1
 fi
 
-api_dir="$(find src -mindepth 1 -maxdepth 1 -type d -name '*.Api' | head -n 1)"
-tests_dir="$(find tests -mindepth 1 -maxdepth 1 -type d -name '*.Api.Tests' | head -n 1)"
+api_project="$(find src -mindepth 2 -maxdepth 2 -name '*.Api.csproj' | head -n 1)"
+tests_project="$(find tests -mindepth 2 -maxdepth 2 -name '*.Api.Tests.csproj' | head -n 1)"
+api_dir=""
+tests_dir=""
+[ -n "$api_project" ] && api_dir="$(dirname "$api_project")"
+[ -n "$tests_project" ] && tests_dir="$(dirname "$tests_project")"
+project="$(basename "$api_dir" .Api)"
+export PROJECT="$project"
 
 if [ -z "$api_dir" ] || [ -z "$tests_dir" ] || [ ! -d "$api_dir/Feature/Todos" ]; then
   echo "Estrutura inesperada: não encontrei o exemplo Todos para arquivar." >&2
@@ -42,10 +48,13 @@ if [ -d bruno/Todos ]; then
 fi
 
 for file in "$api_dir/Infrastructure/DependencyInjections/DependencyInjection.cs" "$persistence/AppDbContext.cs"; do
-  perl -ni -e 'print unless /Todo/' "$file"
+  perl -ni -e '(my $l = $_) =~ s/\Q$ENV{PROJECT}\E//g; print unless $l =~ /Todo/' "$file"
 done
 
 find src tests -depth -type d -empty -delete
+if [ -d bruno ]; then
+  find bruno -depth -type d -empty -delete
+fi
 
 git rm -rq "$persistence/Migrations"
 rm -rf "$persistence/Migrations"
@@ -62,10 +71,11 @@ if [ "${#pointer_files[@]}" -gt 0 ]; then
     s{(?:src/[\w.]+/)?Infrastructure/Persistence/Entities/(Todo(?:Item|Event)\.cs)}{ai/moldes/Todos/Entities/$1}g;
     s{(?:src/[\w.]+/)?Infrastructure/Persistence/Configurations/(Todo(?:Item|Event)Configuration\.cs)}{ai/moldes/Todos/Configurations/$1}g;
     s{tests/[\w.]+/Todos}{ai/moldes/Todos/tests}g;
+    s{bruno/Todos}{ai/moldes/Todos/bruno}g;
   ' "${pointer_files[@]}"
 fi
 
-leftover="$(git grep -nI Todo -- 'src/**/*.cs' 'tests/**/*.cs' || true)"
+leftover="$(git grep -nI Todo -- 'src/**/*.cs' 'tests/**/*.cs' | perl -ne 's/\Q$ENV{PROJECT}\E//g; print if /Todo/' || true)"
 if [ -n "$leftover" ]; then
   echo "Sobraram referências a Todo fora do molde:" >&2
   echo "$leftover" >&2

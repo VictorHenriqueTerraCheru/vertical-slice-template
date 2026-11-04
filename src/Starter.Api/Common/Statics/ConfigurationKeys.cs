@@ -19,6 +19,7 @@ public static class ConfigurationKeys
     public const string SmtpSenderName = "SMTP_SENDER_NAME";
     public const string SmtpSenderEmail = "SMTP_SENDER_EMAIL";
     public const string PasswordResetUrl = "PASSWORD_RESET_URL";
+    public const string TrustedProxyNetworks = "TRUSTED_PROXY_NETWORKS";
     public const string InitialAdminEmail = "INITIAL_ADMIN_EMAIL";
     public const string InitialAdminPassword = "INITIAL_ADMIN_PASSWORD";
 }

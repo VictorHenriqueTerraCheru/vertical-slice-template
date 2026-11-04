@@ -1,20 +1,20 @@
 using Microsoft.AspNetCore.HttpOverrides;
 
+using Starter.Api.Common;
+
 namespace Starter.Api.Infrastructure;
 
 public static class ProxyConfiguration
 {
-    private static readonly string[] TrustedNetworks = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"];
-
-    public static IServiceCollection AddProxy(this IServiceCollection services) =>
+    public static IServiceCollection AddProxy(this IServiceCollection services, EnvironmentConfiguration configuration) =>
         services.Configure<ForwardedHeadersOptions>(options =>
         {
             options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
             options.KnownProxies.Clear();
             options.KnownIPNetworks.Clear();
-            foreach (var network in TrustedNetworks)
+            foreach (var network in configuration.TrustedProxyNetworks)
             {
-                options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(network));
+                options.KnownIPNetworks.Add(network);
             }
         });
 

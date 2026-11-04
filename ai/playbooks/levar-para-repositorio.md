@@ -9,10 +9,12 @@ Use quando a pessoa pede para iniciar um projeto .NET em outro repositório, usa
 
 ## Passos
 
-1. Copie para o destino, sem o histórico git: `src/`, `tests/`, `Directory.Build.props`, `Directory.Packages.props`, `global.json`, `nuget.config`, `.editorconfig`, `.gitignore`, `.dockerignore`, `.env.example`, `dotnet-tools.json`, `Dockerfile`, `docker-compose.yml`, `Starter.slnx`, `.github/`, `docs/`, `AGENTS.md`, `CLAUDE.md`, `CONTEXT.md`, `ai/`, `.claude/`, `tools/`, `LICENSE`.
-2. No destino, siga `ai/playbooks/iniciar-projeto.md` a partir do passo 1.
-3. Confirme com a pessoa o nome do repositório e a licença antes do primeiro commit.
-4. Faça o commit inicial só depois de build, testes e `tools/check-docs.sh` passarem.
+1. Confirme com a pessoa o nome do repositório e a licença.
+2. No destino, rode `git init`.
+3. Copie para o destino, sem o histórico git: `src/`, `tests/`, `bruno/`, `Directory.Build.props`, `Directory.Packages.props`, `global.json`, `nuget.config`, `.editorconfig`, `.gitignore`, `.dockerignore`, `.env.example`, `dotnet-tools.json`, `Dockerfile`, `docker-compose.yml`, `Starter.slnx`, `.github/`, `docs/`, `AGENTS.md`, `CLAUDE.md`, `CONTEXT.md`, `ai/`, `.claude/`, `tools/`, `LICENSE`.
+4. Commite a importação: `git add -A && git commit -m "chore: importa o template"`. Os scripts exigem árvore limpa.
+5. Siga `ai/playbooks/iniciar-projeto.md` a partir do passo 1; o rename vem depois desse commit.
+6. Antes de publicar o repositório, confirme que build, testes e `tools/check-docs.sh` passam.
 
 ## Pronto quando
 

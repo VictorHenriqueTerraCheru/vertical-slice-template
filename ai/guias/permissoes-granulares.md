@@ -6,7 +6,7 @@ Use quando `Authenticated` e `Administrator` deixarem de bastar (`ai/adr/0006-po
 
 - Tabelas por feature: `profiles` (perfil), `features` (capacidades, por exemplo `todos.read`) e `profile_features`; `users` ganha o perfil.
 - Entidades em `Infrastructure/Persistence/Entities/`, uma feature `Permissions` seguindo `ai/playbooks/nova-feature.md`.
-- A decisão "este usuário pode X" é uma regra pura em `Feature/Permissions/Rules/`, testada direto.
+- A decisão "este usuário pode X" é uma regra pura em `Feature/<Area>/Rules/` (por exemplo, numa área de permissões), testada direto.
 
 ## Aplicação
 

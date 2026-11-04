@@ -17,7 +17,7 @@ catch (InvalidOperationException exception)
 
 builder.Services
     .AddApplication(configuration)
-    .AddProxy()
+    .AddProxy(configuration)
     .AddCorsPolicy(configuration)
     .AddRateLimiting(configuration)
     .AddOpenApiDocumentation()

@@ -4,6 +4,12 @@ public sealed class EnvironmentConfiguration
 {
     public EnvironmentConfiguration(IConfiguration configuration, string environment)
     {
+        if (!EnvironmentNames.All.Contains(environment))
+        {
+            throw new InvalidOperationException(
+                $"Unknown environment '{environment}'. Use one of: {string.Join(", ", EnvironmentNames.All)}.");
+        }
+
         var missing = MissingRequiredKeys(configuration, environment);
         if (missing.Count > 0)
         {
@@ -30,6 +36,13 @@ public sealed class EnvironmentConfiguration
         PasswordResetUrl = configuration[ConfigurationKeys.PasswordResetUrl];
         InitialAdminEmail = configuration[ConfigurationKeys.InitialAdminEmail];
         InitialAdminPassword = configuration[ConfigurationKeys.InitialAdminPassword];
+        if (string.IsNullOrWhiteSpace(InitialAdminEmail) != string.IsNullOrWhiteSpace(InitialAdminPassword))
+        {
+            throw new InvalidOperationException(
+                $"{ConfigurationKeys.InitialAdminEmail} and {ConfigurationKeys.InitialAdminPassword} must be set together or both left empty.");
+        }
+
+        TrustedProxyNetworks = ParseNetworks(configuration[ConfigurationKeys.TrustedProxyNetworks]);
     }
 
     public string Environment { get; }
@@ -72,6 +85,8 @@ public sealed class EnvironmentConfiguration
 
     public string? InitialAdminPassword { get; }
 
+    public IReadOnlyList<System.Net.IPNetwork> TrustedProxyNetworks { get; }
+
     public static IReadOnlyList<string> MissingRequiredKeys(IConfiguration configuration, string environment) =>
         RequiredKeys(environment).Where(key => string.IsNullOrWhiteSpace(configuration[key])).ToList();
 
@@ -106,12 +121,28 @@ public sealed class EnvironmentConfiguration
             throw new InvalidOperationException($"{ConfigurationKeys.JwtKey} must have at least {SecurityConstants.JwtKeyMinimumLength} characters.");
         }
 
-        if (environment == EnvironmentNames.Production && key.StartsWith(SecurityConstants.ExampleJwtKeyPrefix, StringComparison.Ordinal))
+        if (environment is not (EnvironmentNames.Development or EnvironmentNames.Testing) && key.StartsWith(SecurityConstants.ExampleJwtKeyPrefix, StringComparison.Ordinal))
         {
-            throw new InvalidOperationException($"{ConfigurationKeys.JwtKey} cannot be the example key in Production.");
+            throw new InvalidOperationException($"{ConfigurationKeys.JwtKey} cannot be the example key outside Development and Testing.");
         }
 
         return key;
+    }
+
+    private static List<System.Net.IPNetwork> ParseNetworks(string? value)
+    {
+        var networks = new List<System.Net.IPNetwork>();
+        foreach (var entry in Split(value))
+        {
+            if (!System.Net.IPNetwork.TryParse(entry, out var network))
+            {
+                throw new InvalidOperationException($"{ConfigurationKeys.TrustedProxyNetworks} contains an invalid CIDR: '{entry}'.");
+            }
+
+            networks.Add(network);
+        }
+
+        return networks;
     }
 
     private static string[] Split(string? value) =>
