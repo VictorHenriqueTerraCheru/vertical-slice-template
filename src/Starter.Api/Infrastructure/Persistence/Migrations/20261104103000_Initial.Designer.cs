@@ -12,7 +12,7 @@ using Starter.Api.Persistence;
 namespace Starter.Api.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261104055619_Initial")]
+    [Migration("20261104103000_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -146,6 +146,49 @@ namespace Starter.Api.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_refresh_tokens_user_id");
 
                     b.ToTable("refresh_tokens", (string)null);
+                });
+
+            modelBuilder.Entity("Starter.Api.Persistence.TodoEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_id");
+
+                    b.Property<string>("FromStatus")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("from_status");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<string>("ToStatus")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("to_status");
+
+                    b.Property<Guid>("TodoItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("todo_item_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_todo_events");
+
+                    b.HasIndex("ActorId")
+                        .HasDatabaseName("ix_todo_events_actor_id");
+
+                    b.HasIndex("TodoItemId", "OccurredAt")
+                        .HasDatabaseName("ix_todo_events_todo_item_id_occurred_at");
+
+                    b.ToTable("todo_events", (string)null);
                 });
 
             modelBuilder.Entity("Starter.Api.Persistence.TodoItem", b =>
@@ -335,6 +378,23 @@ namespace Starter.Api.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_refresh_tokens_users_user_id");
+                });
+
+            modelBuilder.Entity("Starter.Api.Persistence.TodoEvent", b =>
+                {
+                    b.HasOne("Starter.Api.Persistence.User", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_todo_events_users_actor_id");
+
+                    b.HasOne("Starter.Api.Persistence.TodoItem", null)
+                        .WithMany()
+                        .HasForeignKey("TodoItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_todo_events_todo_items_todo_item_id");
                 });
 
             modelBuilder.Entity("Starter.Api.Persistence.TodoItem", b =>

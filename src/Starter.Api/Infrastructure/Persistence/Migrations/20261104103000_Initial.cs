@@ -147,6 +147,34 @@ namespace Starter.Api.Infrastructure.Persistence.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "todo_events",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    todo_item_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    from_status = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    to_status = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    actor_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    occurred_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_todo_events", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_todo_events_todo_items_todo_item_id",
+                        column: x => x.todo_item_id,
+                        principalTable: "todo_items",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "fk_todo_events_users_actor_id",
+                        column: x => x.actor_id,
+                        principalTable: "users",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "ix_refresh_tokens_token_hash",
                 table: "refresh_tokens",
@@ -157,6 +185,16 @@ namespace Starter.Api.Infrastructure.Persistence.Migrations
                 name: "ix_refresh_tokens_user_id",
                 table: "refresh_tokens",
                 column: "user_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_todo_events_actor_id",
+                table: "todo_events",
+                column: "actor_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_todo_events_todo_item_id_occurred_at",
+                table: "todo_events",
+                columns: new[] { "todo_item_id", "occurred_at" });
 
             migrationBuilder.CreateIndex(
                 name: "ix_todo_items_owner_id_created_at",
@@ -193,7 +231,7 @@ namespace Starter.Api.Infrastructure.Persistence.Migrations
                 name: "refresh_tokens");
 
             migrationBuilder.DropTable(
-                name: "todo_items");
+                name: "todo_events");
 
             migrationBuilder.DropTable(
                 name: "user_claims");
@@ -203,6 +241,9 @@ namespace Starter.Api.Infrastructure.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "user_tokens");
+
+            migrationBuilder.DropTable(
+                name: "todo_items");
 
             migrationBuilder.DropTable(
                 name: "users");

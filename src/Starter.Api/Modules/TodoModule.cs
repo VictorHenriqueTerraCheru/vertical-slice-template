@@ -28,9 +28,24 @@ public sealed class TodoModule : IEndpointModule
             .WithSummary("Atualiza título e descrição de uma tarefa")
             .ProducesProblem(StatusCodes.Status409Conflict);
 
+        group.MapPost("/{id:guid}/transitions", TransitionAsync)
+            .Validate<TransitionTodoRequest>()
+            .WithSummary("Muda o status de uma tarefa e registra o evento no histórico")
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
+        group.MapGet("/{id:guid}/events", ListEventsAsync)
+            .WithSummary("Lista o histórico de mudanças de status de uma tarefa em ordem de ocorrência");
+
         group.MapDelete("/{id:guid}", DeleteAsync)
             .WithSummary("Exclui uma tarefa")
             .ProducesProblem(StatusCodes.Status409Conflict);
+
+        endpoints.MapGroup("/api/v1/admin/todos")
+            .WithTags("Todos")
+            .RequireAuthorization(AuthorizationPolicies.Administrator)
+            .MapGet("/", ListAllAsync)
+            .Validate<ListTodosRequest>()
+            .WithSummary("Lista as tarefas de todos os usuários com paginação, ordenação e filtro de status");
     }
 
     private static async Task<Results<Created<TodoItemResponse>, ProblemHttpResult>> CreateAsync(
@@ -74,6 +89,40 @@ public sealed class TodoModule : IEndpointModule
         {
             null => TypedResults.Ok(result.Value!),
             { Kind: ErrorType.NotFound } error => error.ToNotFound(),
+            var error => error.ToProblem(),
+        };
+    }
+
+    private static async Task<Results<Ok<TodoItemResponse>, NotFound, ProblemHttpResult>> TransitionAsync(
+        Guid id, TransitionTodoRequest request, ClaimsPrincipal user, ITodoService service, CancellationToken ct)
+    {
+        var result = await service.TransitionAsync(user.GetUserId(), id, request, ct);
+        return result.Error switch
+        {
+            null => TypedResults.Ok(result.Value!),
+            { Kind: ErrorType.NotFound } error => error.ToNotFound(),
+            var error => error.ToProblem(),
+        };
+    }
+
+    private static async Task<Results<Ok<TodoEventResponse[]>, NotFound>> ListEventsAsync(
+        Guid id, ClaimsPrincipal user, ITodoService service, CancellationToken ct)
+    {
+        var result = await service.ListEventsAsync(user.GetUserId(), id, ct);
+        return result.Error switch
+        {
+            null => TypedResults.Ok(result.Value!),
+            var error => error.ToNotFound(),
+        };
+    }
+
+    private static async Task<Results<Ok<PagedResponse<AdminTodoItemResponse>>, ProblemHttpResult>> ListAllAsync(
+        [AsParameters] ListTodosRequest request, ITodoService service, CancellationToken ct)
+    {
+        var result = await service.ListAllAsync(request, ct);
+        return result.Error switch
+        {
+            null => TypedResults.Ok(result.Value!),
             var error => error.ToProblem(),
         };
     }

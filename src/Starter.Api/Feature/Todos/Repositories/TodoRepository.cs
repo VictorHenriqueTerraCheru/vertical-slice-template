@@ -28,16 +28,19 @@ public sealed class TodoRepository(AppDbContext db) : ITodoRepository
             .Select(TodoItemResponse.Projection)
             .FirstOrDefaultAsync(cancellationToken);
 
-    public Task<PagedResponse<TodoItemResponse>> ListAsync(Guid ownerId, ListTodosRequest request, CancellationToken cancellationToken)
-    {
-        var query = db.Set<TodoItem>().AsNoTracking().Where(item => item.OwnerId == ownerId);
-        if (request.Status?.Value is { } status)
-        {
-            query = query.Where(item => item.Status == status);
-        }
+    public Task<bool> ExistsAsync(Guid ownerId, Guid id, CancellationToken cancellationToken) =>
+        db.Set<TodoItem>().AnyAsync(item => item.OwnerId == ownerId && item.Id == id, cancellationToken);
 
-        return query
+    public Task<PagedResponse<TodoItemResponse>> ListAsync(Guid ownerId, ListTodosRequest request, CancellationToken cancellationToken) =>
+        Filter(db.Set<TodoItem>().AsNoTracking().Where(item => item.OwnerId == ownerId), request)
             .ApplySort(request, Sortable, TodosConstants.SortByCreatedAt, SortDirection.Desc, item => item.Id)
             .ToPagedAsync(request, TodoItemResponse.Projection, cancellationToken);
-    }
+
+    public Task<PagedResponse<AdminTodoItemResponse>> ListAllAsync(ListTodosRequest request, CancellationToken cancellationToken) =>
+        Filter(db.Set<TodoItem>().AsNoTracking(), request)
+            .ApplySort(request, Sortable, TodosConstants.SortByCreatedAt, SortDirection.Desc, item => item.Id)
+            .ToPagedAsync(request, AdminTodoItemResponse.Projection, cancellationToken);
+
+    private static IQueryable<TodoItem> Filter(IQueryable<TodoItem> query, ListTodosRequest request) =>
+        request.Status?.Value is { } status ? query.Where(item => item.Status == status) : query;
 }

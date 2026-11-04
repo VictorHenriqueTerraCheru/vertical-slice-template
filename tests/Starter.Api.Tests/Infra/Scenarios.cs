@@ -1,5 +1,6 @@
 using System.Net;
 using Starter.Api.Auth;
+using Starter.Api.Users;
 
 namespace Starter.Api.Tests.Infra;
 
@@ -21,6 +22,7 @@ public static class Scenarios
 
         var tokens = await ApiClient.ReadAsync<TokenPair>(response);
         client.Authenticate(tokens.AccessToken);
-        return new RegisteredUser(email, Password, tokens, client);
+        var me = await ApiClient.ReadAsync<UserResponse>(await client.GetMeAsync());
+        return new RegisteredUser(email, Password, tokens, client, me.Id);
     }
 }

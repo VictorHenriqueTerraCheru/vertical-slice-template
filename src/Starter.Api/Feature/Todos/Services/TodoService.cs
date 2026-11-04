@@ -3,7 +3,7 @@ using Starter.Api.Persistence;
 
 namespace Starter.Api.Todos;
 
-public sealed class TodoService(ITodoRepository repository, IUnitOfWork unitOfWork, TimeProvider clock) : ITodoService
+public sealed class TodoService(ITodoRepository repository, ITodoEventRepository events, IUnitOfWork unitOfWork, TimeProvider clock) : ITodoService
 {
     public async Task<Result<TodoItemResponse>> CreateAsync(Guid ownerId, CreateTodoRequest request, CancellationToken cancellationToken)
     {
@@ -38,6 +38,49 @@ public sealed class TodoService(ITodoRepository repository, IUnitOfWork unitOfWo
     public async Task<Result<PagedResponse<TodoItemResponse>>> ListAsync(Guid ownerId, ListTodosRequest request, CancellationToken cancellationToken) =>
         await repository.ListAsync(ownerId, request, cancellationToken);
 
+    public async Task<Result<PagedResponse<AdminTodoItemResponse>>> ListAllAsync(ListTodosRequest request, CancellationToken cancellationToken) =>
+        await repository.ListAllAsync(request, cancellationToken);
+
+    public async Task<Result<TodoEventResponse[]>> ListEventsAsync(Guid ownerId, Guid id, CancellationToken cancellationToken)
+    {
+        if (!await repository.ExistsAsync(ownerId, id, cancellationToken))
+        {
+            return ApplicationError.NotFound;
+        }
+
+        return await events.ListAsync(id, cancellationToken);
+    }
+
+    public Task<Result<TodoItemResponse>> TransitionAsync(Guid actorId, Guid id, TransitionTodoRequest request, CancellationToken cancellationToken) =>
+        unitOfWork.ExecuteInTransactionAsync<TodoItemResponse>(async token =>
+        {
+            var item = await repository.FindAsync(actorId, id, token);
+            if (item is null)
+            {
+                return ApplicationError.NotFound;
+            }
+
+            var target = request.Status!.Value;
+            if (!TodoTransitions.CanMove(item.Status, target))
+            {
+                return TodoErrors.InvalidTransition;
+            }
+
+            var now = clock.GetUtcNow();
+            events.Add(new TodoEvent
+            {
+                Id = Guid.CreateVersion7(now),
+                TodoItemId = item.Id,
+                FromStatus = item.Status,
+                ToStatus = target,
+                ActorId = actorId,
+                OccurredAt = now,
+            });
+            item.Status = target;
+            item.UpdatedAt = now;
+            return TodoItemResponse.From(item);
+        }, cancellationToken);
+
     public Task<Result<TodoItemResponse>> UpdateAsync(Guid ownerId, Guid id, UpdateTodoRequest request, CancellationToken cancellationToken) =>
         unitOfWork.ExecuteInTransactionAsync<TodoItemResponse>(async token =>
         {
@@ -45,6 +88,11 @@ public sealed class TodoService(ITodoRepository repository, IUnitOfWork unitOfWo
             if (item is null)
             {
                 return ApplicationError.NotFound;
+            }
+
+            if (!TodoTransitions.IsEditable(item.Status))
+            {
+                return TodoErrors.NotEditable;
             }
 
             item.Title = request.Title.Trim();
