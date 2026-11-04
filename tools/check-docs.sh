@@ -9,7 +9,7 @@ missing=0
 while IFS= read -r file; do
   while IFS= read -r path; do
     case "$path" in
-      ai/PLANO.md|ai/moldes/*) continue ;;
+      ai/PLANO.md|ai/moldes/*|tools/rename-project.sh|tools/archive-example.sh|tools/test-template-scripts.sh) continue ;;
     esac
     if [ ! -e "$path" ]; then
       echo "$file: $path"
