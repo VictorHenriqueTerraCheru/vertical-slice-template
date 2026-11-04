@@ -36,7 +36,12 @@ public sealed class AuthService(
         }
 
         var pair = IssuePair(verified.Value!);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        var saved = await unitOfWork.SaveChangesAsync(cancellationToken);
+        if (!saved.Success)
+        {
+            return saved.Error!;
+        }
+
         return pair;
     }
 

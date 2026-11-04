@@ -16,7 +16,7 @@ public static class QueryablePagingExtensions
     {
         var lookup = new Dictionary<string, Expression<Func<T, object>>>(sortable, StringComparer.OrdinalIgnoreCase);
         var key = request.SortBy is not null && lookup.ContainsKey(request.SortBy) ? request.SortBy : defaultField;
-        var direction = request.SortDirection ?? defaultDirection;
+        var direction = request.SortDirection?.Value ?? defaultDirection;
         var ordered = direction == SortDirection.Desc ? query.OrderByDescending(lookup[key]) : query.OrderBy(lookup[key]);
         return ordered.ThenBy(tieBreaker);
     }

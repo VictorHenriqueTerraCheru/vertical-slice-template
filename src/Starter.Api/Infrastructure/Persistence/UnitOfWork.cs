@@ -6,7 +6,19 @@ namespace Starter.Api.Persistence;
 
 public sealed class UnitOfWork(AppDbContext context) : IUnitOfWork
 {
-    public Task SaveChangesAsync(CancellationToken cancellationToken) => context.SaveChangesAsync(cancellationToken);
+    public async Task<Result<Empty>> SaveChangesAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await context.SaveChangesAsync(cancellationToken);
+            return new Empty();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            context.ChangeTracker.Clear();
+            return CommonErrors.ConcurrentChange;
+        }
+    }
 
     public async Task<Result<T>> ExecuteInTransactionAsync<T>(Func<CancellationToken, Task<Result<T>>> operation, CancellationToken cancellationToken)
     {

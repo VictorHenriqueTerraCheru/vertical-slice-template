@@ -19,10 +19,5 @@ public static class PageRequestValidationExtensions
             .Must(sortBy => sortableFields.Contains(sortBy!, StringComparer.OrdinalIgnoreCase))
             .When(request => request.SortBy is not null)
             .WithMessage($"A ordenação deve ser um dos campos: {string.Join(", ", sortableFields)}.");
-
-        validator.RuleFor(request => request.SortDirection)
-            .IsInEnum()
-            .When(request => request.SortDirection is not null)
-            .WithMessage("A direção da ordenação é inválida.");
     }
 }

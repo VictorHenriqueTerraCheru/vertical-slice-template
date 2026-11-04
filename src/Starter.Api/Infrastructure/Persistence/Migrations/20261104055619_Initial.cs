@@ -63,6 +63,30 @@ namespace Starter.Api.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "todo_items",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    owner_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    description = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    status = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    xmin = table.Column<uint>(type: "xid", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_todo_items", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_todo_items_users_owner_id",
+                        column: x => x.owner_id,
+                        principalTable: "users",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "user_claims",
                 columns: table => new
                 {
@@ -135,6 +159,11 @@ namespace Starter.Api.Infrastructure.Persistence.Migrations
                 column: "user_id");
 
             migrationBuilder.CreateIndex(
+                name: "ix_todo_items_owner_id_created_at",
+                table: "todo_items",
+                columns: new[] { "owner_id", "created_at" });
+
+            migrationBuilder.CreateIndex(
                 name: "ix_user_claims_user_id",
                 table: "user_claims",
                 column: "user_id");
@@ -162,6 +191,9 @@ namespace Starter.Api.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "refresh_tokens");
+
+            migrationBuilder.DropTable(
+                name: "todo_items");
 
             migrationBuilder.DropTable(
                 name: "user_claims");
