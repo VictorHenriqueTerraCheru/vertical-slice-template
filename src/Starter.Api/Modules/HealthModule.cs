@@ -12,17 +12,17 @@ public sealed class HealthModule : IEndpointModule
             .AllowAnonymous()
             .WithTags("Health");
 
-        group.MapGet("/", Application)
+        group.MapGet("/", LivenessAsync)
             .WithSummary("Verifica se a API está no ar");
 
-        group.MapGet("/database", Database)
+        group.MapGet("/database", DatabaseAsync)
             .WithSummary("Verifica a conexão com o banco de dados")
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
     }
 
-    private static Ok<HealthResponse> Application() => TypedResults.Ok(HealthResponse.Healthy);
+    private static Task<Ok<HealthResponse>> LivenessAsync() => Task.FromResult(TypedResults.Ok(HealthResponse.Healthy));
 
-    private static async Task<Results<Ok<HealthResponse>, ProblemHttpResult>> Database(IHealthService service, CancellationToken ct)
+    private static async Task<Results<Ok<HealthResponse>, ProblemHttpResult>> DatabaseAsync(IHealthService service, CancellationToken ct)
     {
         var result = await service.VerifyDatabaseAsync(ct);
         return result.Error switch

@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Starter.Api.Common;
 using Starter.Api.Persistence;
 
@@ -9,8 +8,6 @@ namespace Starter.Api.Users;
 public sealed class UserRepository(
     UserManager<User> users,
     AppDbContext db,
-    IOptions<IdentityOptions> identity,
-    TimeProvider clock,
     ILogger<UserRepository> logger) : IUserRepository
 {
     public Task<User?> FindByIdAsync(Guid id, CancellationToken cancellationToken) =>
@@ -47,20 +44,18 @@ public sealed class UserRepository(
 
     public async Task<PasswordCheckResult> CheckPasswordAsync(User user, string password, CancellationToken cancellationToken)
     {
-        if (user.LockoutEnabled && user.LockoutEnd > clock.GetUtcNow())
+        if (await users.IsLockedOutAsync(user))
         {
             return PasswordCheckResult.LockedOut;
         }
 
         if (!await users.CheckPasswordAsync(user, password))
         {
-            await RecordFailureAsync(user.Id, cancellationToken);
+            LogIfFailed(await users.AccessFailedAsync(user), "register the failed access");
             return PasswordCheckResult.Invalid;
         }
 
-        await db.Set<User>()
-            .Where(row => row.Id == user.Id && row.AccessFailedCount != 0)
-            .ExecuteUpdateAsync(set => set.SetProperty(row => row.AccessFailedCount, 0), cancellationToken);
+        LogIfFailed(await users.ResetAccessFailedCountAsync(user), "reset the failed access count");
         return PasswordCheckResult.Valid;
     }
 
@@ -79,27 +74,30 @@ public sealed class UserRepository(
         return result.Succeeded;
     }
 
-    public async Task UpdateAsync(User user, CancellationToken cancellationToken)
+    public async Task<Result<Empty>> UpdateAsync(User user, CancellationToken cancellationToken)
     {
         var result = await users.UpdateAsync(user);
+        if (result.Succeeded)
+        {
+            return new Empty();
+        }
+
+        if (result.Errors.Any(error => error.Code == nameof(IdentityErrorDescriber.ConcurrencyFailure)))
+        {
+            return CommonErrors.ConcurrentChange;
+        }
+
+        logger.LogError("Identity rejected the user update: {ErrorCodes}", ErrorCodes(result));
+        return UserErrors.IdentityFailure;
+    }
+
+    private void LogIfFailed(IdentityResult result, string operation)
+    {
         if (!result.Succeeded)
         {
-            logger.LogError("Identity rejected the user update: {ErrorCodes}", string.Join(", ", result.Errors.Select(error => error.Code)));
-            throw new InvalidOperationException("The user could not be updated.");
+            logger.LogWarning("Identity could not {Operation}: {ErrorCodes}", operation, ErrorCodes(result));
         }
     }
 
-    private Task RecordFailureAsync(Guid userId, CancellationToken cancellationToken)
-    {
-        var lockout = identity.Value.Lockout;
-        var maxFailures = lockout.MaxFailedAccessAttempts;
-        var lockoutEnd = (DateTimeOffset?)clock.GetUtcNow().Add(lockout.DefaultLockoutTimeSpan);
-
-        return db.Set<User>()
-            .Where(row => row.Id == userId)
-            .ExecuteUpdateAsync(set => set
-                .SetProperty(row => row.AccessFailedCount, row => row.AccessFailedCount + 1 >= maxFailures ? 0 : row.AccessFailedCount + 1)
-                .SetProperty(row => row.LockoutEnd, row => row.AccessFailedCount + 1 >= maxFailures ? lockoutEnd : row.LockoutEnd),
-                cancellationToken);
-    }
+    private static string ErrorCodes(IdentityResult result) => string.Join(", ", result.Errors.Select(error => error.Code));
 }

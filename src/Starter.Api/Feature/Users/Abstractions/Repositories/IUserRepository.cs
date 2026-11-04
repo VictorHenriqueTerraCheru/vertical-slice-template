@@ -19,5 +19,5 @@ public interface IUserRepository
 
     Task<bool> ChangePasswordAsync(User user, string currentPassword, string newPassword, CancellationToken cancellationToken);
 
-    Task UpdateAsync(User user, CancellationToken cancellationToken);
+    Task<Result<Empty>> UpdateAsync(User user, CancellationToken cancellationToken);
 }

@@ -43,6 +43,18 @@ public sealed class MeTests(ApiFactory factory)
     }
 
     [Fact]
+    public async Task Parallel_updates_answer_only_200_or_409()
+    {
+        var user = await Scenarios.RegisterAsync(factory);
+
+        var responses = await Task.WhenAll(Enumerable.Range(0, 8).Select(index => user.Client.UpdateMeAsync($"Name {index}")));
+
+        responses.Select(response => response.StatusCode).Should()
+            .OnlyContain(status => status == HttpStatusCode.OK || status == HttpStatusCode.Conflict);
+        responses.Should().Contain(response => response.StatusCode == HttpStatusCode.OK);
+    }
+
+    [Fact]
     public async Task Updating_with_an_empty_name_returns_400()
     {
         var user = await Scenarios.RegisterAsync(factory);

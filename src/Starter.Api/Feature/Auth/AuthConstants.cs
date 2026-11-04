@@ -5,4 +5,5 @@ public static class AuthConstants
     public const int PasswordMinLength = 8;
     public const int PasswordMaxLength = 128;
     public const int RefreshTokenBytes = 32;
+    public const int TokenHashLength = 64;
 }

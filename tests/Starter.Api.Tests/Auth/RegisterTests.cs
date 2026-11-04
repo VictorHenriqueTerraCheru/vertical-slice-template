@@ -66,6 +66,28 @@ public sealed class RegisterTests(ApiFactory factory)
         body.GetProperty("errors").TryGetProperty("password", out _).Should().BeTrue();
     }
 
+    [Theory]
+    [InlineData(" @example.com")]
+    [InlineData("a@ ")]
+    public async Task Email_invalid_after_trimming_returns_400_on_the_email_field(string email)
+    {
+        var response = await NewClient().RegisterAsync(email, Scenarios.Password);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var body = await ApiClient.ReadJsonAsync(response);
+        body.GetProperty("errors").TryGetProperty("email", out _).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Null_character_in_the_name_returns_400()
+    {
+        var response = await NewClient().RegisterAsync(Scenarios.NewEmail(), Scenarios.Password, "Bad\0Name");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var body = await ApiClient.ReadJsonAsync(response);
+        body.GetProperty("errors").TryGetProperty("name", out _).Should().BeTrue();
+    }
+
     [Fact]
     public async Task Invalid_email_returns_400()
     {

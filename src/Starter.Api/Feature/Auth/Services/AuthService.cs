@@ -25,13 +25,13 @@ public sealed class AuthService(
 
     public async Task<Result<TokenPair>> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
     {
-        var user = await users.VerifyCredentialsAsync(request.Email, request.Password, cancellationToken);
-        if (user is null)
+        var verified = await users.VerifyCredentialsAsync(request.Email, request.Password, cancellationToken);
+        if (!verified.Success)
         {
             return AuthErrors.InvalidCredentials;
         }
 
-        var pair = IssuePair(user);
+        var pair = IssuePair(verified.Value!);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return pair;
     }

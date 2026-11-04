@@ -12,7 +12,7 @@ using Starter.Api.Persistence;
 namespace Starter.Api.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261104052849_Initial")]
+    [Migration("20261104053528_Initial")]
     partial class Initial
     {
         /// <inheritdoc />

@@ -25,19 +25,24 @@ public sealed class UserService(IUserRepository repository, TimeProvider clock) 
         }
 
         user.Name = request.Name.Trim();
-        await repository.UpdateAsync(user, cancellationToken);
+        var updated = await repository.UpdateAsync(user, cancellationToken);
+        if (!updated.Success)
+        {
+            return updated.Error!;
+        }
+
         return UserResponse.From(user);
     }
 
     public Task<Result<User>> CreateAsync(string name, string email, string password, CancellationToken cancellationToken)
     {
-        var normalizedEmail = email.Trim();
+        var trimmedEmail = email.Trim();
         var user = new User
         {
             Id = Guid.CreateVersion7(clock.GetUtcNow()),
             Name = name.Trim(),
-            Email = normalizedEmail,
-            UserName = normalizedEmail,
+            Email = trimmedEmail,
+            UserName = trimmedEmail,
             Role = UserRole.User,
             CreatedAt = clock.GetUtcNow(),
         };
@@ -45,15 +50,20 @@ public sealed class UserService(IUserRepository repository, TimeProvider clock) 
         return repository.CreateAsync(user, password, cancellationToken);
     }
 
-    public async Task<User?> VerifyCredentialsAsync(string email, string password, CancellationToken cancellationToken)
+    public async Task<Result<User>> VerifyCredentialsAsync(string email, string password, CancellationToken cancellationToken)
     {
         var user = await repository.FindByEmailAsync(email.Trim(), cancellationToken);
         if (user is null)
         {
-            return null;
+            return ApplicationError.Unauthorized;
         }
 
         var check = await repository.CheckPasswordAsync(user, password, cancellationToken);
-        return check == PasswordCheckResult.Valid ? user : null;
+        if (check != PasswordCheckResult.Valid)
+        {
+            return ApplicationError.Unauthorized;
+        }
+
+        return user;
     }
 }

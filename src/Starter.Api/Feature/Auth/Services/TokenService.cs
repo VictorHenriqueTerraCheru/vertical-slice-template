@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
@@ -33,7 +32,7 @@ public sealed class TokenService(EnvironmentConfiguration configuration, TimePro
                 [JwtRegisteredClaimNames.Sub] = user.Id.ToString(),
                 [JwtRegisteredClaimNames.Email] = user.Email!,
                 [ClaimNames.Name] = user.Name,
-                [ClaimNames.Role] = JsonNamingPolicy.CamelCase.ConvertName(user.Role.ToString()),
+                [ClaimNames.Role] = RoleName(user.Role),
             },
         });
 
@@ -45,6 +44,13 @@ public sealed class TokenService(EnvironmentConfiguration configuration, TimePro
         var value = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(AuthConstants.RefreshTokenBytes));
         return new IssuedToken(value, clock.GetUtcNow().AddDays(configuration.RefreshTokenDays));
     }
+
+    private static string RoleName(UserRole role) => role switch
+    {
+        UserRole.User => RoleNames.User,
+        UserRole.Administrator => RoleNames.Administrator,
+        _ => throw new ArgumentOutOfRangeException(nameof(role), role, null),
+    };
 
     public string Hash(string refreshToken) =>
         Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken)));

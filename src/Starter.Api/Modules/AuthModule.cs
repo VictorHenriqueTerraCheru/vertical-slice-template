@@ -11,20 +11,20 @@ public sealed class AuthModule : IEndpointModule
         var group = endpoints.MapGroup("/api/v1/auth")
             .WithTags("Auth");
 
-        group.MapPost("/register", Register)
+        group.MapPost("/register", RegisterAsync)
             .AllowAnonymous()
             .Validate<RegisterRequest>()
             .WithSummary("Cria uma conta e devolve os tokens de acesso")
             .ProducesProblem(StatusCodes.Status409Conflict);
 
-        group.MapPost("/login", Login)
+        group.MapPost("/login", LoginAsync)
             .AllowAnonymous()
             .Validate<LoginRequest>()
             .WithSummary("Autentica com e-mail e senha e devolve os tokens de acesso")
             .ProducesProblem(StatusCodes.Status401Unauthorized);
     }
 
-    private static async Task<Results<Created<TokenPair>, ProblemHttpResult>> Register(
+    private static async Task<Results<Created<TokenPair>, ProblemHttpResult>> RegisterAsync(
         RegisterRequest request, IAuthService service, CancellationToken ct)
     {
         var result = await service.RegisterAsync(request, ct);
@@ -35,7 +35,7 @@ public sealed class AuthModule : IEndpointModule
         };
     }
 
-    private static async Task<Results<Ok<TokenPair>, ProblemHttpResult>> Login(
+    private static async Task<Results<Ok<TokenPair>, ProblemHttpResult>> LoginAsync(
         LoginRequest request, IAuthService service, CancellationToken ct)
     {
         var result = await service.LoginAsync(request, ct);

@@ -12,15 +12,16 @@ public sealed class UserModule : IEndpointModule
         var group = endpoints.MapGroup("/api/v1/me")
             .WithTags("Users");
 
-        group.MapGet("/", GetMe)
+        group.MapGet("/", GetMeAsync)
             .WithSummary("Devolve os dados do usuário autenticado");
 
-        group.MapPut("/", UpdateMe)
+        group.MapPut("/", UpdateMeAsync)
             .Validate<UpdateMeRequest>()
-            .WithSummary("Atualiza os dados do usuário autenticado");
+            .WithSummary("Atualiza os dados do usuário autenticado")
+            .ProducesProblem(StatusCodes.Status409Conflict);
     }
 
-    private static async Task<Results<Ok<UserResponse>, NotFound>> GetMe(
+    private static async Task<Results<Ok<UserResponse>, NotFound>> GetMeAsync(
         ClaimsPrincipal user, IUserService service, CancellationToken ct)
     {
         var result = await service.GetMeAsync(user.GetUserId(), ct);
@@ -31,14 +32,20 @@ public sealed class UserModule : IEndpointModule
         };
     }
 
-    private static async Task<Results<Ok<UserResponse>, NotFound>> UpdateMe(
+    private static async Task<Results<Ok<UserResponse>, NotFound, ProblemHttpResult>> UpdateMeAsync(
         UpdateMeRequest request, ClaimsPrincipal user, IUserService service, CancellationToken ct)
     {
         var result = await service.UpdateMeAsync(user.GetUserId(), request, ct);
-        return result.Error switch
+        if (result.Success)
         {
-            null => TypedResults.Ok(result.Value!),
-            var error => error.ToNotFound(),
-        };
+            return TypedResults.Ok(result.Value!);
+        }
+
+        if (result.Error!.Kind == ErrorType.NotFound)
+        {
+            return result.Error.ToNotFound();
+        }
+
+        return result.Error.ToProblem();
     }
 }

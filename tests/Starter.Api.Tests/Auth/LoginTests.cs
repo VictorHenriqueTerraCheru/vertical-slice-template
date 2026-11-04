@@ -1,7 +1,9 @@
 using System.Net;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Starter.Api.Auth;
 using Starter.Api.Common;
+using Starter.Api.Persistence;
 using Starter.Api.Tests.Infra;
 
 namespace Starter.Api.Tests.Auth;
@@ -84,10 +86,21 @@ public sealed class LoginTests(ApiFactory factory)
         var user = await Scenarios.RegisterAsync(factory);
         await LockAccountAsync(user);
 
-        factory.Clock.Advance(TimeSpan.FromMinutes(_configuration.LockoutMinutes + 1));
+        var normalized = user.Email.ToUpperInvariant();
+        await factory.InDatabaseAsync(db => db.Set<User>()
+            .Where(row => row.NormalizedEmail == normalized)
+            .ExecuteUpdateAsync(set => set.SetProperty(row => row.LockoutEnd, DateTimeOffset.UtcNow.AddMinutes(-1))));
 
         var response = await NewClient().LoginAsync(user.Email, user.Password);
         response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Null_character_in_the_email_returns_400()
+    {
+        var response = await NewClient().LoginAsync("a\0@example.com", Scenarios.Password);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
