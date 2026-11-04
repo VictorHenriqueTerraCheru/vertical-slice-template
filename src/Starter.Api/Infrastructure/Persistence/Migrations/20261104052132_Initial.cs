@@ -118,7 +118,7 @@ namespace Starter.Api.Infrastructure.Persistence.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "UserNameIndex",
+                name: "ix_users_normalized_user_name",
                 table: "users",
                 column: "normalized_user_name",
                 unique: true);

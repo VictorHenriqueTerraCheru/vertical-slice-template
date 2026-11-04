@@ -1,5 +1,6 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Starter.Api.Persistence;
 
 namespace Starter.Api.Tests.Architecture;
@@ -16,6 +17,7 @@ public sealed class ArchitectureTests
 
     private static bool IsDataAccess(Type parameter) =>
         parameter == typeof(AppDbContext) ||
+        parameter == typeof(IDbContextFactory<AppDbContext>) ||
         (parameter.IsGenericType && parameter.GetGenericTypeDefinition() == typeof(UserManager<>));
 
     private static bool IsRepository(Type type) => type.Name.EndsWith("Repository", StringComparison.Ordinal);
@@ -45,12 +47,12 @@ public sealed class ArchitectureTests
     }
 
     [Fact]
-    public void No_module_receives_repository()
+    public void No_module_receives_repository_or_data_access()
     {
-        var offenders = ProductionTypes()
+        var offenders = Production.GetTypes()
             .Where(type => type.Namespace == "Starter.Api.Modules")
             .SelectMany(type => type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance | BindingFlags.DeclaredOnly)
-                .Where(method => method.GetParameters().Any(parameter => parameter.ParameterType.Name.EndsWith("Repository", StringComparison.Ordinal)))
+                .Where(method => method.GetParameters().Any(parameter => IsRepository(parameter.ParameterType) || IsDataAccess(parameter.ParameterType)))
                 .Select(method => $"{type.FullName}.{method.Name}"))
             .ToList();
 

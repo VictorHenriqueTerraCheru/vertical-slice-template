@@ -12,7 +12,7 @@ using Starter.Api.Persistence;
 namespace Starter.Api.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261104051240_Initial")]
+    [Migration("20261104052132_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -199,7 +199,7 @@ namespace Starter.Api.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("NormalizedUserName")
                         .IsUnique()
-                        .HasDatabaseName("UserNameIndex");
+                        .HasDatabaseName("ix_users_normalized_user_name");
 
                     b.ToTable("users", (string)null);
                 });

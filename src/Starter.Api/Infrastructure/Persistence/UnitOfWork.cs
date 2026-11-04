@@ -6,37 +6,49 @@ namespace Starter.Api.Persistence;
 
 public sealed class UnitOfWork(AppDbContext context) : IUnitOfWork
 {
-    public async Task<Result<T>> ExecuteAsync<T>(Func<CancellationToken, Task<Result<T>>> operation, CancellationToken ct)
+    public Task SaveChangesAsync(CancellationToken cancellationToken) => context.SaveChangesAsync(cancellationToken);
+
+    public async Task<Result<T>> ExecuteInTransactionAsync<T>(Func<CancellationToken, Task<Result<T>>> operation, CancellationToken cancellationToken)
     {
-        await using var transaction = await context.Database.BeginTransactionAsync(ct);
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+        var committed = false;
         try
         {
-            var result = await operation(ct);
-            if (!result.Success)
+            var result = await operation(cancellationToken);
+            if (result.Success)
             {
-                await DiscardAsync(transaction);
-                return result;
+                await context.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+                committed = true;
             }
 
-            await context.SaveChangesAsync(ct);
-            await transaction.CommitAsync(ct);
             return result;
         }
         catch (DbUpdateConcurrencyException)
         {
-            await DiscardAsync(transaction);
             return CommonErrors.ConcurrentChange;
         }
-        catch
+        finally
         {
-            await DiscardAsync(transaction);
-            throw;
+            if (!committed)
+            {
+                await DiscardAsync(transaction);
+            }
         }
     }
 
     private async Task DiscardAsync(IDbContextTransaction transaction)
     {
-        await transaction.RollbackAsync(CancellationToken.None);
-        context.ChangeTracker.Clear();
+        try
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+        }
+        catch (Exception)
+        {
+        }
+        finally
+        {
+            context.ChangeTracker.Clear();
+        }
     }
 }

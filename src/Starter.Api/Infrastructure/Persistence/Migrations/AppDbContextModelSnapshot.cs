@@ -196,7 +196,7 @@ namespace Starter.Api.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("NormalizedUserName")
                         .IsUnique()
-                        .HasDatabaseName("UserNameIndex");
+                        .HasDatabaseName("ix_users_normalized_user_name");
 
                     b.ToTable("users", (string)null);
                 });
