@@ -82,4 +82,42 @@ public sealed class UserService(IUserRepository repository, TimeProvider clock) 
 
         return user;
     }
+
+    public async Task<Result<string>> GeneratePasswordResetTokenAsync(string email, CancellationToken cancellationToken)
+    {
+        var user = await repository.FindByEmailAsync(email.Trim(), cancellationToken);
+        if (user is null)
+        {
+            return ApplicationError.NotFound;
+        }
+
+        return await repository.GeneratePasswordResetTokenAsync(user, cancellationToken);
+    }
+
+    public async Task<Result<User>> ResetPasswordAsync(string email, string token, string newPassword, CancellationToken cancellationToken)
+    {
+        var user = await repository.FindByEmailAsync(email.Trim(), cancellationToken);
+        if (user is null || !await repository.ResetPasswordAsync(user, token, newPassword, cancellationToken))
+        {
+            return UserErrors.InvalidPasswordResetToken;
+        }
+
+        return user;
+    }
+
+    public async Task<Result<Empty>> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword, CancellationToken cancellationToken)
+    {
+        var user = await repository.FindByIdAsync(userId, cancellationToken);
+        if (user is null)
+        {
+            return ApplicationError.NotFound;
+        }
+
+        if (!await repository.ChangePasswordAsync(user, currentPassword, newPassword, cancellationToken))
+        {
+            return UserErrors.WrongCurrentPassword;
+        }
+
+        return new Empty();
+    }
 }

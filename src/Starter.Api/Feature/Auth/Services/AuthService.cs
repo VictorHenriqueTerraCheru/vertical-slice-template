@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.WebUtilities;
 using Starter.Api.Common;
 using Starter.Api.Persistence;
 using Starter.Api.Users;
@@ -9,6 +10,9 @@ public sealed class AuthService(
     IRefreshTokenRepository refreshTokens,
     ITokenService tokens,
     IUnitOfWork unitOfWork,
+    IEmailSender emailSender,
+    EnvironmentConfiguration configuration,
+    ILogger<AuthService> logger,
     TimeProvider clock) : IAuthService
 {
     public Task<Result<TokenPair>> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken) =>
@@ -64,6 +68,64 @@ public sealed class AuthService(
     {
         await refreshTokens.RevokeAllByUserAsync(userId, clock.GetUtcNow(), cancellationToken);
         return new Empty();
+    }
+
+    public async Task<Result<Empty>> ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken cancellationToken)
+    {
+        var email = request.Email.Trim();
+        var resetToken = await users.GeneratePasswordResetTokenAsync(email, cancellationToken);
+        if (!resetToken.Success)
+        {
+            return new Empty();
+        }
+
+        try
+        {
+            await emailSender.SendAsync(
+                new EmailMessage(email, AuthConstants.PasswordResetSubject, PasswordResetBody(email, resetToken.Value!)),
+                cancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            logger.LogError(exception, "Could not send the password reset email");
+        }
+
+        return new Empty();
+    }
+
+    public Task<Result<Empty>> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken) =>
+        unitOfWork.ExecuteInTransactionAsync<Empty>(async token =>
+        {
+            var reset = await users.ResetPasswordAsync(request.Email, request.Token, request.NewPassword, token);
+            if (!reset.Success)
+            {
+                return reset.Error!;
+            }
+
+            await refreshTokens.RevokeAllByUserAsync(reset.Value!.Id, clock.GetUtcNow(), token);
+            return new Empty();
+        }, cancellationToken);
+
+    public Task<Result<Empty>> ChangePasswordAsync(Guid userId, ChangePasswordRequest request, CancellationToken cancellationToken) =>
+        unitOfWork.ExecuteInTransactionAsync<Empty>(async token =>
+        {
+            var changed = await users.ChangePasswordAsync(userId, request.CurrentPassword, request.NewPassword, token);
+            if (!changed.Success)
+            {
+                return changed.Error!;
+            }
+
+            await refreshTokens.RevokeAllByUserAsync(userId, clock.GetUtcNow(), token);
+            return new Empty();
+        }, cancellationToken);
+
+    private string PasswordResetBody(string email, string resetToken)
+    {
+        var link = QueryHelpers.AddQueryString(
+            configuration.PasswordResetUrl ?? AuthConstants.DefaultPasswordResetUrl,
+            new Dictionary<string, string?> { ["email"] = email, ["token"] = resetToken });
+
+        return $"Recebemos um pedido para redefinir a senha da sua conta. Acesse o link abaixo para escolher uma nova senha:\n\n{link}\n\nSe você não fez esse pedido, ignore esta mensagem.";
     }
 
     private TokenPair IssuePair(User user)

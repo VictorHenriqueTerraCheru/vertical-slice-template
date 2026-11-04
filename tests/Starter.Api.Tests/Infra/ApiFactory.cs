@@ -14,6 +14,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     private readonly PostgreSqlContainer _database = new PostgreSqlBuilder("postgres:17-alpine").Build();
 
+    public CapturingEmailSender Emails { get; } = new();
+
     public FakeTimeProvider Clock { get; } = new(PostgresClock.Truncate(DateTimeOffset.UtcNow));
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -24,7 +26,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting(ConfigurationKeys.JwtIssuer, "starter-tests");
         builder.UseSetting(ConfigurationKeys.JwtAudience, "starter-tests");
         builder.UseSetting(ConfigurationKeys.RateLimitAuthPerMinute, "100000");
-        builder.ConfigureTestServices(services => services.AddSingleton<TimeProvider>(Clock));
+        builder.ConfigureTestServices(services => services
+            .AddSingleton<TimeProvider>(Clock)
+            .AddSingleton<IEmailSender>(Emails));
     }
 
     public async Task InitializeAsync()

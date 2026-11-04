@@ -32,6 +32,22 @@ public sealed class AuthModule : IEndpointModule
 
         group.MapPost("/logout", LogoutAsync)
             .WithSummary("Encerra todas as sessões da conta autenticada");
+
+        group.MapPost("/forgot-password", ForgotPasswordAsync)
+            .AllowAnonymous()
+            .Validate<ForgotPasswordRequest>()
+            .WithSummary("Envia o link de redefinição de senha quando a conta existe; a resposta é sempre a mesma");
+
+        group.MapPost("/reset-password", ResetPasswordAsync)
+            .AllowAnonymous()
+            .Validate<ResetPasswordRequest>()
+            .WithSummary("Redefine a senha com o token recebido por e-mail e encerra todas as sessões")
+            .ProducesProblem(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/change-password", ChangePasswordAsync)
+            .Validate<ChangePasswordRequest>()
+            .WithSummary("Troca a senha da conta autenticada e encerra todas as sessões")
+            .ProducesProblem(StatusCodes.Status400BadRequest);
     }
 
     private static async Task<Results<Created<TokenPair>, ProblemHttpResult>> RegisterAsync(
@@ -71,6 +87,39 @@ public sealed class AuthModule : IEndpointModule
         ClaimsPrincipal user, IAuthService service, CancellationToken ct)
     {
         var result = await service.LogoutAsync(user.GetUserId(), ct);
+        return result.Error switch
+        {
+            null => TypedResults.NoContent(),
+            var error => error.ToProblem(),
+        };
+    }
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> ForgotPasswordAsync(
+        ForgotPasswordRequest request, IAuthService service, CancellationToken ct)
+    {
+        var result = await service.ForgotPasswordAsync(request, ct);
+        return result.Error switch
+        {
+            null => TypedResults.NoContent(),
+            var error => error.ToProblem(),
+        };
+    }
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> ResetPasswordAsync(
+        ResetPasswordRequest request, IAuthService service, CancellationToken ct)
+    {
+        var result = await service.ResetPasswordAsync(request, ct);
+        return result.Error switch
+        {
+            null => TypedResults.NoContent(),
+            var error => error.ToProblem(),
+        };
+    }
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> ChangePasswordAsync(
+        ChangePasswordRequest request, ClaimsPrincipal user, IAuthService service, CancellationToken ct)
+    {
+        var result = await service.ChangePasswordAsync(user.GetUserId(), request, ct);
         return result.Error switch
         {
             null => TypedResults.NoContent(),

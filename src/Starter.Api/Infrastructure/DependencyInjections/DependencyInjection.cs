@@ -18,7 +18,8 @@ public static class DependencyInjection
             .AddValidation()
             .AddPersistence(configuration)
             .AddRepositories()
-            .AddServices();
+            .AddServices()
+            .AddEmailSender(configuration);
 
     private static IServiceCollection AddClock(this IServiceCollection services) =>
         services.AddSingleton<TimeProvider>(new PostgresClock());
@@ -35,6 +36,11 @@ public static class DependencyInjection
                 .UseNpgsql(configuration.DatabaseConnectionString)
                 .UseSnakeCaseNamingConvention())
             .AddScoped<IUnitOfWork, UnitOfWork>();
+
+    public static IServiceCollection AddEmailSender(this IServiceCollection services, EnvironmentConfiguration configuration) =>
+        configuration.Environment is EnvironmentNames.Development or EnvironmentNames.Testing
+            ? services.AddSingleton<IEmailSender, LoggingEmailSender>()
+            : services.AddSingleton<IEmailSender, SmtpEmailSender>();
 
     public static IServiceCollection AddRepositories(this IServiceCollection services)
     {
