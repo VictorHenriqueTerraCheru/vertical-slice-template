@@ -7,6 +7,8 @@ public static class Scenarios
 {
     public static string Password { get; } = "correct-horse-battery";
 
+    public static string NewPassword { get; } = "another-strong-password";
+
     public static string NewEmail() => $"{Guid.NewGuid():N}@example.com";
 
     public static async Task<RegisteredUser> RegisterAsync(ApiFactory factory, string? email = null)

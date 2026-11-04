@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FluentValidation;
 using Starter.Api.Common;
 using Starter.Api.Users;
@@ -8,7 +9,12 @@ public sealed class ResetPasswordRequestValidator : AbstractValidator<ResetPassw
 {
     public ResetPasswordRequestValidator()
     {
-        RuleFor(request => request.Email).NotEmpty().EmailAddress().MaximumLength(UsersConstants.EmailMaxLength).NoNullCharacter();
+        RuleFor(request => (request.Email ?? string.Empty).Trim())
+            .NotEmpty()
+            .OverridePropertyName(JsonNamingPolicy.CamelCase.ConvertName(nameof(ResetPasswordRequest.Email)))
+            .EmailAddress()
+            .MaximumLength(UsersConstants.EmailMaxLength)
+            .NoNullCharacter();
         RuleFor(request => request.Token).NotEmpty().MaximumLength(AuthConstants.PasswordResetTokenMaxLength).NoNullCharacter();
         RuleFor(request => request.NewPassword).ValidNewPassword();
     }

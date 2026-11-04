@@ -72,9 +72,8 @@ public sealed class AuthService(
 
     public async Task<Result<Empty>> ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken cancellationToken)
     {
-        var email = request.Email.Trim();
-        var resetToken = await users.GeneratePasswordResetTokenAsync(email, cancellationToken);
-        if (!resetToken.Success)
+        var grant = await users.GeneratePasswordResetTokenAsync(request.Email, cancellationToken);
+        if (!grant.Success)
         {
             return new Empty();
         }
@@ -82,10 +81,10 @@ public sealed class AuthService(
         try
         {
             await emailSender.SendAsync(
-                new EmailMessage(email, AuthConstants.PasswordResetSubject, PasswordResetBody(email, resetToken.Value!)),
+                new EmailMessage(grant.Value!.Email, AuthConstants.PasswordResetSubject, PasswordResetBody(grant.Value!)),
                 cancellationToken);
         }
-        catch (Exception exception) when (exception is not OperationCanceledException)
+        catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
         {
             logger.LogError(exception, "Could not send the password reset email");
         }
@@ -119,11 +118,11 @@ public sealed class AuthService(
             return new Empty();
         }, cancellationToken);
 
-    private string PasswordResetBody(string email, string resetToken)
+    private string PasswordResetBody(PasswordResetGrant grant)
     {
         var link = QueryHelpers.AddQueryString(
             configuration.PasswordResetUrl ?? AuthConstants.DefaultPasswordResetUrl,
-            new Dictionary<string, string?> { ["email"] = email, ["token"] = resetToken });
+            new Dictionary<string, string?> { ["email"] = grant.Email, ["token"] = grant.Token });
 
         return $"Recebemos um pedido para redefinir a senha da sua conta. Acesse o link abaixo para escolher uma nova senha:\n\n{link}\n\nSe você não fez esse pedido, ignore esta mensagem.";
     }

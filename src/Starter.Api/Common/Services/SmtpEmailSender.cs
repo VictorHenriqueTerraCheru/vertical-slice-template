@@ -15,8 +15,12 @@ public sealed class SmtpEmailSender(EnvironmentConfiguration configuration) : IE
         mime.Subject = message.Subject;
         mime.Body = new TextPart(TextFormat.Plain) { Text = message.Body };
 
-        using var client = new SmtpClient();
-        await client.ConnectAsync(configuration.SmtpHost!, configuration.SmtpPort, SecureSocketOptions.Auto, cancellationToken);
+        var security = configuration.SmtpPort == SmtpConstants.ImplicitTlsPort
+            ? SecureSocketOptions.SslOnConnect
+            : SecureSocketOptions.StartTls;
+
+        using var client = new SmtpClient { Timeout = SmtpConstants.TimeoutMilliseconds };
+        await client.ConnectAsync(configuration.SmtpHost!, configuration.SmtpPort, security, cancellationToken);
         await client.AuthenticateAsync(configuration.SmtpUser!, configuration.SmtpPassword!, cancellationToken);
         await client.SendAsync(mime, cancellationToken);
         await client.DisconnectAsync(true, cancellationToken);

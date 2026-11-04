@@ -83,7 +83,7 @@ public sealed class UserService(IUserRepository repository, TimeProvider clock) 
         return user;
     }
 
-    public async Task<Result<string>> GeneratePasswordResetTokenAsync(string email, CancellationToken cancellationToken)
+    public async Task<Result<PasswordResetGrant>> GeneratePasswordResetTokenAsync(string email, CancellationToken cancellationToken)
     {
         var user = await repository.FindByEmailAsync(email.Trim(), cancellationToken);
         if (user is null)
@@ -91,15 +91,22 @@ public sealed class UserService(IUserRepository repository, TimeProvider clock) 
             return ApplicationError.NotFound;
         }
 
-        return await repository.GeneratePasswordResetTokenAsync(user, cancellationToken);
+        var token = await repository.GeneratePasswordResetTokenAsync(user, cancellationToken);
+        return new PasswordResetGrant(user.Email!, token);
     }
 
     public async Task<Result<User>> ResetPasswordAsync(string email, string token, string newPassword, CancellationToken cancellationToken)
     {
         var user = await repository.FindByEmailAsync(email.Trim(), cancellationToken);
-        if (user is null || !await repository.ResetPasswordAsync(user, token, newPassword, cancellationToken))
+        if (user is null)
         {
             return UserErrors.InvalidPasswordResetToken;
+        }
+
+        var reset = await repository.ResetPasswordAsync(user, token, newPassword, cancellationToken);
+        if (!reset.Success)
+        {
+            return reset.Error!;
         }
 
         return user;
@@ -113,11 +120,6 @@ public sealed class UserService(IUserRepository repository, TimeProvider clock) 
             return ApplicationError.NotFound;
         }
 
-        if (!await repository.ChangePasswordAsync(user, currentPassword, newPassword, cancellationToken))
-        {
-            return UserErrors.WrongCurrentPassword;
-        }
-
-        return new Empty();
+        return await repository.ChangePasswordAsync(user, currentPassword, newPassword, cancellationToken);
     }
 }

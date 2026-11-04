@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FluentValidation;
 using Starter.Api.Common;
 using Starter.Api.Users;
@@ -8,6 +9,11 @@ public sealed class ForgotPasswordRequestValidator : AbstractValidator<ForgotPas
 {
     public ForgotPasswordRequestValidator()
     {
-        RuleFor(request => request.Email).NotEmpty().EmailAddress().MaximumLength(UsersConstants.EmailMaxLength).NoNullCharacter();
+        RuleFor(request => (request.Email ?? string.Empty).Trim())
+            .NotEmpty()
+            .OverridePropertyName(JsonNamingPolicy.CamelCase.ConvertName(nameof(ForgotPasswordRequest.Email)))
+            .EmailAddress()
+            .MaximumLength(UsersConstants.EmailMaxLength)
+            .NoNullCharacter();
     }
 }

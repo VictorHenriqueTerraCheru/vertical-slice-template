@@ -9,8 +9,6 @@ namespace Starter.Api.Tests.Auth;
 [Collection(nameof(ApiCollection))]
 public sealed partial class PasswordTests(ApiFactory factory)
 {
-    private const string NewPassword = "another-strong-password";
-
     private ApiClient NewClient() => new(factory.CreateClient());
 
     [GeneratedRegex(@"https?://\S+")]
@@ -42,6 +40,18 @@ public sealed partial class PasswordTests(ApiFactory factory)
         var message = factory.Emails.SentTo(user.Email).Should().ContainSingle().Subject;
         message.Body.Should().Contain("token=");
         ReadResetToken(user.Email).Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task Forgot_with_different_case_sends_to_the_stored_address()
+    {
+        var user = await Scenarios.RegisterAsync(factory);
+
+        var response = await NewClient().ForgotPasswordAsync(user.Email.ToUpperInvariant());
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        ReadResetToken(user.Email).Should().NotBeNullOrWhiteSpace();
+        factory.Emails.SentTo(user.Email.ToUpperInvariant()).Should().BeEmpty();
     }
 
     [Fact]
@@ -89,10 +99,10 @@ public sealed partial class PasswordTests(ApiFactory factory)
         var user = await Scenarios.RegisterAsync(factory);
         var token = await RequestResetTokenAsync(user.Email);
 
-        var response = await NewClient().ResetPasswordAsync(user.Email, token, NewPassword);
+        var response = await NewClient().ResetPasswordAsync(user.Email, token, Scenarios.NewPassword);
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
-        (await NewClient().LoginAsync(user.Email, NewPassword)).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await NewClient().LoginAsync(user.Email, Scenarios.NewPassword)).StatusCode.Should().Be(HttpStatusCode.OK);
         (await NewClient().LoginAsync(user.Email, user.Password)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         (await NewClient().RefreshAsync(user.Tokens.RefreshToken)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
@@ -102,10 +112,11 @@ public sealed partial class PasswordTests(ApiFactory factory)
     {
         var user = await Scenarios.RegisterAsync(factory);
 
-        var response = await NewClient().ResetPasswordAsync(user.Email, "invalid-token", NewPassword);
+        var response = await NewClient().ResetPasswordAsync(user.Email, "invalid-token", Scenarios.NewPassword);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await NewClient().LoginAsync(user.Email, user.Password)).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await NewClient().RefreshAsync(user.Tokens.RefreshToken)).StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     [Fact]
@@ -114,8 +125,8 @@ public sealed partial class PasswordTests(ApiFactory factory)
         var user = await Scenarios.RegisterAsync(factory);
         var token = await RequestResetTokenAsync(user.Email);
 
-        var unknown = await NewClient().ResetPasswordAsync(Scenarios.NewEmail(), token, NewPassword);
-        var invalid = await NewClient().ResetPasswordAsync(user.Email, "invalid-token", NewPassword);
+        var unknown = await NewClient().ResetPasswordAsync(Scenarios.NewEmail(), token, Scenarios.NewPassword);
+        var invalid = await NewClient().ResetPasswordAsync(user.Email, "invalid-token", Scenarios.NewPassword);
 
         unknown.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         invalid.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -130,12 +141,12 @@ public sealed partial class PasswordTests(ApiFactory factory)
     {
         var user = await Scenarios.RegisterAsync(factory);
         var token = await RequestResetTokenAsync(user.Email);
-        (await NewClient().ResetPasswordAsync(user.Email, token, NewPassword)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await NewClient().ResetPasswordAsync(user.Email, token, Scenarios.NewPassword)).StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         var response = await NewClient().ResetPasswordAsync(user.Email, token, "yet-another-password");
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await NewClient().LoginAsync(user.Email, NewPassword)).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await NewClient().LoginAsync(user.Email, Scenarios.NewPassword)).StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     [Fact]
@@ -144,9 +155,9 @@ public sealed partial class PasswordTests(ApiFactory factory)
         var user = await Scenarios.RegisterAsync(factory);
         var token = await RequestResetTokenAsync(user.Email);
 
-        (await NewClient().ResetPasswordAsync(user.Email, string.Empty, NewPassword)).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await NewClient().ResetPasswordAsync(user.Email, string.Empty, Scenarios.NewPassword)).StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await NewClient().ResetPasswordAsync(user.Email, token, "short")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await NewClient().ResetPasswordAsync(user.Email, token, NewPassword)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await NewClient().ResetPasswordAsync(user.Email, token, Scenarios.NewPassword)).StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
 
     [Fact]
@@ -154,10 +165,12 @@ public sealed partial class PasswordTests(ApiFactory factory)
     {
         var user = await Scenarios.RegisterAsync(factory);
 
-        var response = await user.Client.ChangePasswordAsync("wrong-current-password", NewPassword);
+        var response = await user.Client.ChangePasswordAsync("wrong-current-password", Scenarios.NewPassword);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await ApiClient.ReadJsonAsync(response)).GetProperty("errors").TryGetProperty("currentPassword", out _).Should().BeTrue();
         (await NewClient().LoginAsync(user.Email, user.Password)).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await NewClient().RefreshAsync(user.Tokens.RefreshToken)).StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     [Fact]
@@ -165,10 +178,10 @@ public sealed partial class PasswordTests(ApiFactory factory)
     {
         var user = await Scenarios.RegisterAsync(factory);
 
-        var response = await user.Client.ChangePasswordAsync(user.Password, NewPassword);
+        var response = await user.Client.ChangePasswordAsync(user.Password, Scenarios.NewPassword);
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
-        (await NewClient().LoginAsync(user.Email, NewPassword)).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await NewClient().LoginAsync(user.Email, Scenarios.NewPassword)).StatusCode.Should().Be(HttpStatusCode.OK);
         (await NewClient().LoginAsync(user.Email, user.Password)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         (await NewClient().RefreshAsync(user.Tokens.RefreshToken)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
@@ -176,7 +189,7 @@ public sealed partial class PasswordTests(ApiFactory factory)
     [Fact]
     public async Task Change_without_token_returns_401()
     {
-        var response = await NewClient().ChangePasswordAsync("any-password", NewPassword);
+        var response = await NewClient().ChangePasswordAsync("any-password", Scenarios.NewPassword);
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }

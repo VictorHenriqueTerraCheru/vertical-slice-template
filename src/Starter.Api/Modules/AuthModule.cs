@@ -116,14 +116,15 @@ public sealed class AuthModule : IEndpointModule
         };
     }
 
-    private static async Task<Results<NoContent, ProblemHttpResult>> ChangePasswordAsync(
+    private static async Task<Results<NoContent, ValidationProblem, ProblemHttpResult>> ChangePasswordAsync(
         ChangePasswordRequest request, ClaimsPrincipal user, IAuthService service, CancellationToken ct)
     {
         var result = await service.ChangePasswordAsync(user.GetUserId(), request, ct);
-        return result.Error switch
+        if (result.Success)
         {
-            null => TypedResults.NoContent(),
-            var error => error.ToProblem(),
-        };
+            return TypedResults.NoContent();
+        }
+
+        return result.Error!.Kind == ErrorType.Field ? result.Error.ToValidation() : result.Error.ToProblem();
     }
 }

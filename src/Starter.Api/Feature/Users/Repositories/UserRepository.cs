@@ -65,17 +65,11 @@ public sealed class UserRepository(
     public Task<string> GeneratePasswordResetTokenAsync(User user, CancellationToken cancellationToken) =>
         users.GeneratePasswordResetTokenAsync(user);
 
-    public async Task<bool> ResetPasswordAsync(User user, string token, string newPassword, CancellationToken cancellationToken)
-    {
-        var result = await users.ResetPasswordAsync(user, token, newPassword);
-        return result.Succeeded;
-    }
+    public async Task<Result<Empty>> ResetPasswordAsync(User user, string token, string newPassword, CancellationToken cancellationToken) =>
+        PasswordOutcome(await users.ResetPasswordAsync(user, token, newPassword));
 
-    public async Task<bool> ChangePasswordAsync(User user, string currentPassword, string newPassword, CancellationToken cancellationToken)
-    {
-        var result = await users.ChangePasswordAsync(user, currentPassword, newPassword);
-        return result.Succeeded;
-    }
+    public async Task<Result<Empty>> ChangePasswordAsync(User user, string currentPassword, string newPassword, CancellationToken cancellationToken) =>
+        PasswordOutcome(await users.ChangePasswordAsync(user, currentPassword, newPassword));
 
     public async Task<Result<Empty>> UpdateAsync(User user, CancellationToken cancellationToken)
     {
@@ -93,6 +87,34 @@ public sealed class UserRepository(
         logger.LogError("Identity rejected the user update: {ErrorCodes}", ErrorCodes(result));
         return UserErrors.IdentityFailure;
     }
+
+    private Result<Empty> PasswordOutcome(IdentityResult result)
+    {
+        if (result.Succeeded)
+        {
+            return new Empty();
+        }
+
+        if (HasError(result, nameof(IdentityErrorDescriber.PasswordMismatch)))
+        {
+            return UserErrors.WrongCurrentPassword;
+        }
+
+        if (HasError(result, nameof(IdentityErrorDescriber.InvalidToken)))
+        {
+            return UserErrors.InvalidPasswordResetToken;
+        }
+
+        if (HasError(result, nameof(IdentityErrorDescriber.ConcurrencyFailure)))
+        {
+            return CommonErrors.ConcurrentChange;
+        }
+
+        logger.LogError("Identity rejected the password change: {ErrorCodes}", ErrorCodes(result));
+        return UserErrors.IdentityFailure;
+    }
+
+    private static bool HasError(IdentityResult result, string code) => result.Errors.Any(error => error.Code == code);
 
     private void LogIfFailed(IdentityResult result, string operation)
     {

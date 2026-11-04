@@ -15,7 +15,7 @@ public interface IUserService
 
     Task<Result<User>> VerifyCredentialsAsync(string email, string password, CancellationToken cancellationToken);
 
-    Task<Result<string>> GeneratePasswordResetTokenAsync(string email, CancellationToken cancellationToken);
+    Task<Result<PasswordResetGrant>> GeneratePasswordResetTokenAsync(string email, CancellationToken cancellationToken);
 
     Task<Result<User>> ResetPasswordAsync(string email, string token, string newPassword, CancellationToken cancellationToken);
 
