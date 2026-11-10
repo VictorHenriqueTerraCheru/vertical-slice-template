@@ -1,11 +1,14 @@
 using FluentValidation;
 
+using Starter.Api.Common;
+
 namespace Starter.Api.AiUsage;
 
 public sealed class AiUsageReportRequestValidator : AbstractValidator<AiUsageReportRequest>
 {
     public AiUsageReportRequestValidator()
     {
+        this.AddPageRules(AiUsageConstants.SortableFields);
         RuleFor(request => request.From).NotNull();
         RuleFor(request => request.To)
             .NotNull()

@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 
 using Starter.Api.AiUsage;
+using Starter.Api.Common;
 using Starter.Api.Persistence;
 using Starter.Api.Tests.Infra;
 
@@ -46,11 +47,44 @@ public sealed class AiUsageReportTests(ApiFactory factory)
         var response = await admin.GetAsync($"/api/v1/admin/ai-usage?{Period}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var report = await ApiClient.ReadAsync<AiUsageReport>(response);
-        report.Models.Single(row => row.Model == first)
-            .Should().Be(new AiUsageByModel("openai", first, 2, 1, 110, 55, 10));
-        report.Models.Single(row => row.Model == second)
-            .Should().Be(new AiUsageByModel("openai", second, 1, 0, 40, 20, 5));
+        var report = await ApiClient.ReadAsync<PagedResponse<AiUsageByModel>>(response);
+        report.Items.Single(row => row.Model == first)
+            .Should().Be(new AiUsageByModel { Provider = "openai", Model = first, Calls = 2, FailedCalls = 1, InputTokens = 110, CachedInputTokens = 55, OutputTokens = 10 });
+        report.Items.Single(row => row.Model == second)
+            .Should().Be(new AiUsageByModel { Provider = "openai", Model = second, Calls = 1, FailedCalls = 0, InputTokens = 40, CachedInputTokens = 20, OutputTokens = 5 });
+        report.Page.Should().Be(1);
+        report.PageSize.Should().Be(20);
+    }
+
+    [Fact]
+    public async Task Report_pages_and_sorts_by_calls()
+    {
+        var at = new DateTimeOffset(2002, 6, 10, 12, 0, 0, TimeSpan.Zero);
+        var models = Enumerable.Range(1, 3).Select(index => $"paged-{index}-{Guid.NewGuid():N}").ToArray();
+        await factory.InDatabaseAsync(db =>
+        {
+            for (var index = 0; index < models.Length; index++)
+            {
+                for (var call = 0; call <= index; call++)
+                {
+                    db.Set<AiUsageEntry>().Add(Entry(models[index], AiCallStatus.Completed, 10, at.AddMinutes(call)));
+                }
+            }
+
+            return db.SaveChangesAsync();
+        });
+        var admin = await Scenarios.AdministratorClientAsync(factory);
+        const string window = "from=2002-06-01T00:00:00Z&to=2002-07-01T00:00:00Z";
+
+        var first = await ApiClient.ReadAsync<PagedResponse<AiUsageByModel>>(
+            await admin.GetAsync($"/api/v1/admin/ai-usage?{window}&sortBy=calls&sortDirection=desc&pageSize=2"));
+        var second = await ApiClient.ReadAsync<PagedResponse<AiUsageByModel>>(
+            await admin.GetAsync($"/api/v1/admin/ai-usage?{window}&sortBy=calls&sortDirection=desc&pageSize=2&page=2"));
+
+        first.TotalCount.Should().Be(3);
+        first.TotalPages.Should().Be(2);
+        first.Items.Select(row => row.Model).Should().Equal(models[2], models[1]);
+        second.Items.Select(row => row.Model).Should().Equal(models[0]);
     }
 
     [Fact]
@@ -68,6 +102,8 @@ public sealed class AiUsageReportTests(ApiFactory factory)
     [InlineData("from=2001-03-01T00:00:00Z")]
     [InlineData("from=2001-04-01T00:00:00Z&to=2001-03-01T00:00:00Z")]
     [InlineData("from=2001-01-01T00:00:00Z&to=2002-02-01T00:00:00Z")]
+    [InlineData(Period + "&sortBy=latency")]
+    [InlineData(Period + "&pageSize=0")]
     public async Task Invalid_period_returns_400(string query)
     {
         var admin = await Scenarios.AdministratorClientAsync(factory);

@@ -40,11 +40,6 @@ public sealed class AiUsageService(
         }
     }
 
-    public async Task<Result<AiUsageReport>> ReportAsync(AiUsageReportRequest request, CancellationToken cancellationToken)
-    {
-        var from = request.From!.Value.ToUniversalTime();
-        var to = request.To!.Value.ToUniversalTime();
-        var models = await repository.SummarizeAsync(from, to, cancellationToken);
-        return new AiUsageReport(from, to, models);
-    }
+    public async Task<Result<PagedResponse<AiUsageByModel>>> ReportAsync(AiUsageReportRequest request, CancellationToken cancellationToken) =>
+        await repository.SummarizeAsync(request.From!.Value.ToUniversalTime(), request.To!.Value.ToUniversalTime(), request, cancellationToken);
 }

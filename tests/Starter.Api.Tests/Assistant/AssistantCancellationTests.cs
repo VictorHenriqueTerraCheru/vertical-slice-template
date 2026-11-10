@@ -19,7 +19,7 @@ public sealed class AssistantCancellationTests
             return Task.CompletedTask;
         }
 
-        public Task<Result<AiUsageReport>> ReportAsync(AiUsageReportRequest request, CancellationToken cancellationToken) =>
+        public Task<Result<PagedResponse<AiUsageByModel>>> ReportAsync(AiUsageReportRequest request, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
     }
 
