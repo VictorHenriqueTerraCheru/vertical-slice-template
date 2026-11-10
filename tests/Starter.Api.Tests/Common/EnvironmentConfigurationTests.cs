@@ -141,4 +141,145 @@ public sealed class EnvironmentConfigurationTests
 
         act.Should().Throw<InvalidOperationException>().WithMessage("*TRUSTED_PROXY_NETWORKS*");
     }
+
+    [Theory]
+    [InlineData("465", SmtpSecurity.SslOnConnect)]
+    [InlineData("587", SmtpSecurity.StartTls)]
+    [InlineData("25", SmtpSecurity.StartTls)]
+    public void Smtp_security_defaults_from_the_port(string port, SmtpSecurity expected)
+    {
+        var values = Complete();
+        values["SMTP_PORT"] = port;
+
+        new EnvironmentConfiguration(Build(values), EnvironmentNames.Production).SmtpSecurity.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("Testing")]
+    [InlineData("Staging")]
+    [InlineData("Production")]
+    public void Smtp_security_None_is_rejected_outside_Development(string environment)
+    {
+        var values = Complete();
+        values["SMTP_SECURITY"] = "None";
+
+        var act = () => new EnvironmentConfiguration(Build(values), environment);
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*SMTP_SECURITY*");
+    }
+
+    [Fact]
+    public void Smtp_security_None_is_accepted_in_Development()
+    {
+        var values = Complete();
+        values["SMTP_SECURITY"] = "none";
+
+        new EnvironmentConfiguration(Build(values), EnvironmentNames.Development).SmtpSecurity.Should().Be(SmtpSecurity.None);
+    }
+
+    [Theory]
+    [InlineData("tls")]
+    [InlineData("3")]
+    public void Unknown_smtp_security_aborts_startup(string value)
+    {
+        var values = Complete();
+        values["SMTP_SECURITY"] = value;
+
+        var act = () => new EnvironmentConfiguration(Build(values), EnvironmentNames.Development);
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*SMTP_SECURITY*");
+    }
+
+    [Fact]
+    public void Smtp_host_requires_the_sender_email_in_any_environment()
+    {
+        var values = new Dictionary<string, string?>(Complete()) { ["SMTP_SENDER_EMAIL"] = "" };
+
+        EnvironmentConfiguration.MissingRequiredKeys(Build(values), EnvironmentNames.Development)
+            .Should().BeEquivalentTo("SMTP_SENDER_EMAIL");
+    }
+
+    [Theory]
+    [InlineData("EMAIL_LOGO_URL")]
+    [InlineData("AI_CHAT_BASE_URL")]
+    public void Relative_or_non_http_urls_abort_startup(string key)
+    {
+        foreach (var invalid in new[] { "logo.png", "ftp://example.com/x" })
+        {
+            var values = Complete();
+            values[key] = invalid;
+
+            var act = () => new EnvironmentConfiguration(Build(values), EnvironmentNames.Development);
+
+            act.Should().Throw<InvalidOperationException>().WithMessage($"*{key}*");
+        }
+    }
+
+    [Fact]
+    public void Ai_defaults_to_openai_without_a_key()
+    {
+        var configuration = new EnvironmentConfiguration(Build(Complete()), EnvironmentNames.Production);
+
+        configuration.AiChatProvider.Should().Be("openai");
+        configuration.AiChatBaseUrl.Should().Be(new Uri("https://api.openai.com/v1/"));
+        configuration.AiChatIncludeReasoning.Should().BeTrue();
+        configuration.AiChatConfigured.Should().BeFalse();
+        configuration.RateLimitAiPerMinute.Should().Be(10);
+    }
+
+    [Fact]
+    public void Ai_api_key_requires_the_model()
+    {
+        var values = Complete();
+        values["AI_CHAT_API_KEY"] = "secret";
+
+        EnvironmentConfiguration.MissingRequiredKeys(Build(values), EnvironmentNames.Production)
+            .Should().BeEquivalentTo("AI_CHAT_MODEL");
+    }
+
+    [Fact]
+    public void Unknown_ai_provider_aborts_startup()
+    {
+        var values = Complete();
+        values["AI_CHAT_PROVIDER"] = "someone-else";
+
+        var act = () => new EnvironmentConfiguration(Build(values), EnvironmentNames.Production);
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*AI_CHAT_PROVIDER*");
+    }
+
+    [Theory]
+    [InlineData("Testing")]
+    [InlineData("Staging")]
+    [InlineData("Production")]
+    public void Plain_http_ai_base_url_is_rejected_outside_Development(string environment)
+    {
+        var values = Complete();
+        values["AI_CHAT_BASE_URL"] = "http://gateway.internal/v1/";
+
+        var act = () => new EnvironmentConfiguration(Build(values), environment);
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*AI_CHAT_BASE_URL*https*");
+    }
+
+    [Fact]
+    public void Plain_http_ai_base_url_is_accepted_in_Development()
+    {
+        var values = Complete();
+        values["AI_CHAT_BASE_URL"] = "http://localhost:11434/v1/";
+
+        new EnvironmentConfiguration(Build(values), EnvironmentNames.Development).AiChatBaseUrl
+            .Should().Be(new Uri("http://localhost:11434/v1/"));
+    }
+
+    [Fact]
+    public void Ai_model_longer_than_the_usage_column_aborts_startup()
+    {
+        var values = Complete();
+        values["AI_CHAT_MODEL"] = new string('m', 101);
+
+        var act = () => new EnvironmentConfiguration(Build(values), EnvironmentNames.Production);
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*AI_CHAT_MODEL*");
+    }
 }

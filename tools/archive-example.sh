@@ -47,8 +47,22 @@ if [ -d bruno/Todos ]; then
   done
 fi
 
+assistant_mold=ai/moldes/Assistant
+if [ -d "$api_dir/Feature/Assistant" ]; then
+  mkdir -p "$assistant_mold/Modules"
+  git mv "$api_dir/Feature/Assistant" "$assistant_mold/Feature"
+  git mv "$api_dir/Modules/AssistantModule.cs" "$assistant_mold/Modules/AssistantModule.cs"
+  [ -d "$tests_dir/Assistant" ] && git mv "$tests_dir/Assistant" "$assistant_mold/tests"
+  if [ -d bruno/Assistant ]; then
+    mkdir -p "$assistant_mold/bruno"
+    for file in bruno/Assistant/*; do
+      git mv "$file" "$assistant_mold/bruno/$(basename "$file")"
+    done
+  fi
+fi
+
 for file in "$api_dir/Infrastructure/DependencyInjections/DependencyInjection.cs" "$persistence/AppDbContext.cs"; do
-  perl -ni -e '(my $l = $_) =~ s/\Q$ENV{PROJECT}\E//g; print unless $l =~ /Todo/' "$file"
+  perl -ni -e '(my $l = $_) =~ s/\Q$ENV{PROJECT}\E//g; print unless $l =~ /Todo|Assistant/' "$file"
 done
 
 find src tests -depth -type d -empty -delete
@@ -72,12 +86,16 @@ if [ "${#pointer_files[@]}" -gt 0 ]; then
     s{(?:src/[\w.]+/)?Infrastructure/Persistence/Configurations/(Todo(?:Item|Event)Configuration\.cs)}{ai/moldes/Todos/Configurations/$1}g;
     s{tests/[\w.]+/Todos}{ai/moldes/Todos/tests}g;
     s{bruno/Todos}{ai/moldes/Todos/bruno}g;
+    s{(?:src/[\w.]+/)?Feature/Assistant}{ai/moldes/Assistant/Feature}g;
+    s{(?:src/[\w.]+/)?Modules/AssistantModule\.cs}{ai/moldes/Assistant/Modules/AssistantModule.cs}g;
+    s{tests/[\w.]+/Assistant}{ai/moldes/Assistant/tests}g;
+    s{bruno/Assistant}{ai/moldes/Assistant/bruno}g;
   ' "${pointer_files[@]}"
 fi
 
-leftover="$(git grep -nI Todo -- 'src/**/*.cs' 'tests/**/*.cs' | perl -ne 's/\Q$ENV{PROJECT}\E//g; print if /Todo/' || true)"
+leftover="$(git grep -nIE 'Todo|Assistant' -- 'src/**/*.cs' 'tests/**/*.cs' | perl -ne 's/\Q$ENV{PROJECT}\E//g; s/ChatRole\.Assistant//g; s/:\s+Assistant,\s*$//; print if /Todo|Assistant/' || true)"
 if [ -n "$leftover" ]; then
-  echo "Sobraram referências a Todo fora do molde:" >&2
+  echo "Sobraram referências ao exemplo fora do molde:" >&2
   echo "$leftover" >&2
   exit 1
 fi
@@ -90,4 +108,4 @@ git add -A
 git rm -qf tools/rename-project.sh tools/test-template-scripts.sh .github/workflows/template-check.yml
 git rm -qf tools/archive-example.sh
 
-echo "Exemplo arquivado em $mold. Rode dotnet build, dotnet test e tools/check-docs.sh, depois commite."
+echo "Exemplo arquivado em $mold e $assistant_mold. Rode dotnet build, dotnet test e tools/check-docs.sh, depois commite."

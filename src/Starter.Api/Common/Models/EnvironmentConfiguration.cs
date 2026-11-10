@@ -28,11 +28,13 @@ public sealed class EnvironmentConfiguration
         RateLimitAuthPerMinute = configuration.GetValue(ConfigurationKeys.RateLimitAuthPerMinute, 10);
         CorsOrigins = Split(configuration[ConfigurationKeys.CorsOrigins]);
         SmtpHost = configuration[ConfigurationKeys.SmtpHost];
-        SmtpPort = configuration.GetValue(ConfigurationKeys.SmtpPort, 587);
+        SmtpPort = configuration.GetValue(ConfigurationKeys.SmtpPort, SmtpConstants.DefaultPort);
         SmtpUser = configuration[ConfigurationKeys.SmtpUser];
         SmtpPassword = configuration[ConfigurationKeys.SmtpPassword];
         SmtpSenderName = configuration[ConfigurationKeys.SmtpSenderName];
         SmtpSenderEmail = configuration[ConfigurationKeys.SmtpSenderEmail];
+        SmtpSecurity = ParseSmtpSecurity(configuration[ConfigurationKeys.SmtpSecurity], SmtpPort, environment);
+        EmailLogoUrl = OptionalUrl(configuration[ConfigurationKeys.EmailLogoUrl], ConfigurationKeys.EmailLogoUrl);
         PasswordResetUrl = configuration[ConfigurationKeys.PasswordResetUrl];
         InitialAdminEmail = configuration[ConfigurationKeys.InitialAdminEmail];
         InitialAdminPassword = configuration[ConfigurationKeys.InitialAdminPassword];
@@ -43,6 +45,18 @@ public sealed class EnvironmentConfiguration
         }
 
         TrustedProxyNetworks = ParseNetworks(configuration[ConfigurationKeys.TrustedProxyNetworks]);
+        AiChatProvider = ParseAiProvider(configuration[ConfigurationKeys.AiChatProvider]);
+        AiChatModel = ValidModel(configuration[ConfigurationKeys.AiChatModel]);
+        AiChatApiKey = configuration[ConfigurationKeys.AiChatApiKey];
+        AiChatBaseUrl = SecureOutsideDevelopment(
+            OptionalUrl(configuration[ConfigurationKeys.AiChatBaseUrl], ConfigurationKeys.AiChatBaseUrl) ?? new Uri(AiConstants.OpenAiBaseUrl),
+            ConfigurationKeys.AiChatBaseUrl,
+            environment);
+        AiChatIncludeReasoning = configuration.GetValue(ConfigurationKeys.AiChatIncludeReasoning, true);
+        AiChatReasoningEffort = string.IsNullOrWhiteSpace(configuration[ConfigurationKeys.AiChatReasoningEffort])
+            ? null
+            : configuration[ConfigurationKeys.AiChatReasoningEffort]!.Trim().ToLowerInvariant();
+        RateLimitAiPerMinute = configuration.GetValue(ConfigurationKeys.RateLimitAiPerMinute, 10);
     }
 
     public string Environment { get; }
@@ -79,6 +93,10 @@ public sealed class EnvironmentConfiguration
 
     public string? SmtpSenderEmail { get; }
 
+    public SmtpSecurity SmtpSecurity { get; }
+
+    public Uri? EmailLogoUrl { get; }
+
     public string? PasswordResetUrl { get; }
 
     public string? InitialAdminEmail { get; }
@@ -87,10 +105,26 @@ public sealed class EnvironmentConfiguration
 
     public IReadOnlyList<System.Net.IPNetwork> TrustedProxyNetworks { get; }
 
-    public static IReadOnlyList<string> MissingRequiredKeys(IConfiguration configuration, string environment) =>
-        RequiredKeys(environment).Where(key => string.IsNullOrWhiteSpace(configuration[key])).ToList();
+    public string AiChatProvider { get; }
 
-    private static IEnumerable<string> RequiredKeys(string environment)
+    public string? AiChatModel { get; }
+
+    public string? AiChatApiKey { get; }
+
+    public Uri AiChatBaseUrl { get; }
+
+    public bool AiChatIncludeReasoning { get; }
+
+    public string? AiChatReasoningEffort { get; }
+
+    public int RateLimitAiPerMinute { get; }
+
+    public bool AiChatConfigured => !string.IsNullOrWhiteSpace(AiChatApiKey);
+
+    public static IReadOnlyList<string> MissingRequiredKeys(IConfiguration configuration, string environment) =>
+        RequiredKeys(configuration, environment).Where(key => string.IsNullOrWhiteSpace(configuration[key])).Distinct().ToList();
+
+    private static IEnumerable<string> RequiredKeys(IConfiguration configuration, string environment)
     {
         yield return ConfigurationKeys.DatabaseConnection;
         yield return ConfigurationKeys.JwtKey;
@@ -112,6 +146,84 @@ public sealed class EnvironmentConfiguration
         {
             yield return ConfigurationKeys.CorsOrigins;
         }
+
+        if (!string.IsNullOrWhiteSpace(configuration[ConfigurationKeys.SmtpHost]))
+        {
+            yield return ConfigurationKeys.SmtpSenderEmail;
+        }
+
+        if (!string.IsNullOrWhiteSpace(configuration[ConfigurationKeys.AiChatApiKey]))
+        {
+            yield return ConfigurationKeys.AiChatModel;
+        }
+    }
+
+    private static SmtpSecurity ParseSmtpSecurity(string? value, int port, string environment)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return port == SmtpConstants.ImplicitTlsPort ? SmtpSecurity.SslOnConnect : SmtpSecurity.StartTls;
+        }
+
+        if (!Enum.TryParse<SmtpSecurity>(value, ignoreCase: true, out var security) || !Enum.IsDefined(security))
+        {
+            throw new InvalidOperationException(
+                $"{ConfigurationKeys.SmtpSecurity} must be one of: {string.Join(", ", Enum.GetNames<SmtpSecurity>())}.");
+        }
+
+        if (security == SmtpSecurity.None && environment != EnvironmentNames.Development)
+        {
+            throw new InvalidOperationException($"{ConfigurationKeys.SmtpSecurity}=None is accepted only in Development.");
+        }
+
+        return security;
+    }
+
+    private static string ParseAiProvider(string? value)
+    {
+        var provider = string.IsNullOrWhiteSpace(value) ? AiConstants.ProviderOpenAi : value.Trim().ToLowerInvariant();
+        if (!AiConstants.SupportedProviders.Contains(provider))
+        {
+            throw new InvalidOperationException(
+                $"{ConfigurationKeys.AiChatProvider} must be one of: {string.Join(", ", AiConstants.SupportedProviders)}.");
+        }
+
+        return provider;
+    }
+
+    private static string? ValidModel(string? value)
+    {
+        if (value is not null && value.Trim().Length > AiConstants.ModelMaxLength)
+        {
+            throw new InvalidOperationException($"{ConfigurationKeys.AiChatModel} must have at most {AiConstants.ModelMaxLength} characters.");
+        }
+
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private static Uri SecureOutsideDevelopment(Uri url, string key, string environment)
+    {
+        if (url.Scheme != Uri.UriSchemeHttps && environment != EnvironmentNames.Development)
+        {
+            throw new InvalidOperationException($"{key} must use https outside Development.");
+        }
+
+        return url;
+    }
+
+    private static Uri? OptionalUrl(string? value, string key)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var url) || url.Scheme is not ("http" or "https"))
+        {
+            throw new InvalidOperationException($"{key} must be an absolute http or https URL.");
+        }
+
+        return url;
     }
 
     private static string ValidJwtKey(string key, string environment)

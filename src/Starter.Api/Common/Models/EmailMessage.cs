@@ -1,3 +1,3 @@
 namespace Starter.Api.Common;
 
-public sealed record EmailMessage(string To, string Subject, string Body);
+public sealed record EmailMessage(string To, string Subject, string TextBody, string HtmlBody);

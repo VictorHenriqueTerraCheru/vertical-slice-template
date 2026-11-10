@@ -115,14 +115,19 @@ commit_all "$clone"
 cp "$clone/tools/archive-example.sh" "$work/archive-copy.sh"
 expect_success "archive-example" "$clone" bash tools/archive-example.sh
 mold="$clone/ai/moldes/Todos"
+assistant_mold="$clone/ai/moldes/Assistant"
 if [ -z "$(git -C "$clone" grep -iI todo -- 'src/**/*.cs' 'tests/**/*.cs' || true)" ] \
+  && [ -z "$(git -C "$clone" grep -I 'Assistant' -- 'src/**/*.cs' 'tests/**/*.cs' | grep -v 'ChatRole.Assistant' | grep -v 'Assistant,' || true)" ] \
+  && [ -f "$assistant_mold/Modules/AssistantModule.cs" ] && [ -d "$assistant_mold/Feature/Services" ] \
+  && [ -f "$assistant_mold/tests/AssistantTests.cs" ] && [ -f "$assistant_mold/bruno/send-message.bru" ] \
+  && [ -d "$clone/src/Acme.Api/Feature/AiUsage" ] && [ -f "$clone/src/Acme.Api/Common/Services/OpenAiChatModelClient.cs" ] \
   && [ -f "$mold/Modules/TodoModule.cs" ] && [ -d "$mold/Feature/Services" ] \
   && [ -f "$mold/Entities/TodoItem.cs" ] && [ -f "$mold/Entities/TodoEvent.cs" ] \
   && [ -f "$mold/Configurations/TodoItemConfiguration.cs" ] && [ -f "$mold/tests/TodoCrudTests.cs" ] \
   && [ -f "$mold/bruno/create.bru" ] && [ ! -e "$clone/tools/archive-example.sh" ] && [ ! -e "$clone/tools/rename-project.sh" ]; then
-  pass "archive deixa src e tests sem Todo e o molde completo"
+  pass "archive deixa src e tests sem Todo e sem o assistente, mantém IA e gasto, e completa os moldes"
 else
-  fail "archive deixou Todo em src ou tests, ou o molde está incompleto"
+  fail "archive deixou Todo ou o assistente em src ou tests, ou um molde está incompleto"
 fi
 expect_success "check-docs depois do archive" "$clone" bash tools/check-docs.sh
 expect_success "build depois do archive" "$clone" dotnet build

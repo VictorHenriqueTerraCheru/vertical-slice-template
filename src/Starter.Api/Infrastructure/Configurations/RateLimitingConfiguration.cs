@@ -23,6 +23,14 @@ public static class RateLimitingConfiguration
                     Window = TimeSpan.FromMinutes(1),
                     QueueLimit = 0,
                 }));
+            options.AddPolicy(RateLimitPolicies.Ai, context => RateLimitPartition.GetFixedWindowLimiter(
+                context.User.GetUserIdOrNull()?.ToString() ?? context.Connection.RemoteIpAddress?.ToString() ?? RateLimitMessages.UnknownClient,
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = configuration.RateLimitAiPerMinute,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0,
+                }));
         });
 
     public static WebApplication UseRateLimiting(this WebApplication app)
