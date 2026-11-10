@@ -1,3 +1,4 @@
+using Starter.Api.Common;
 using Starter.Api.Persistence;
 
 namespace Starter.Api.AiUsage;
@@ -8,5 +9,6 @@ public interface IAiUsageRepository
 
     void Discard(AiUsageEntry entry);
 
-    Task<AiUsageByModel[]> SummarizeAsync(DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken);
+    Task<PagedResponse<AiUsageByModel>> SummarizeAsync(
+        DateTimeOffset from, DateTimeOffset to, AiUsageReportRequest request, CancellationToken cancellationToken);
 }

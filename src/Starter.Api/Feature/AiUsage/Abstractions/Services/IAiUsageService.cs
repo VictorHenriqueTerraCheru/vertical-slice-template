@@ -6,5 +6,5 @@ public interface IAiUsageService
 {
     Task RecordAsync(AiUsageRecord record, CancellationToken cancellationToken);
 
-    Task<Result<AiUsageReport>> ReportAsync(AiUsageReportRequest request, CancellationToken cancellationToken);
+    Task<Result<PagedResponse<AiUsageByModel>>> ReportAsync(AiUsageReportRequest request, CancellationToken cancellationToken);
 }

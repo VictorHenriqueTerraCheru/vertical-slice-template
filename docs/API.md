@@ -138,7 +138,7 @@ Resposta:
 }
 ```
 
-Listagens: `GET /todos` (tarefas do usuário, filtro `status`; ordena por `createdAt` desc por padrão) e `GET /admin/todos` (todas, só `Administrator`). `GET /todos/{id}/events` não é paginada.
+Listagens: `GET /todos` (tarefas do usuário, filtro `status`; ordena por `createdAt` desc por padrão) e `GET /admin/todos` (todas, só `Administrator`) e `GET /admin/ai-usage` (gasto agrupado por modelo). `GET /todos/{id}/events` não é paginada.
 
 ## Assistente (SSE)
 
@@ -179,13 +179,11 @@ Salvo queda da conexão, o stream termina em `done` ou `error`; falha de ferrame
 
 ## Gasto de IA
 
-`GET /admin/ai-usage?from=2026-11-01T00:00:00Z&to=2026-12-01T00:00:00Z`, só `Administrator`. `from` e `to` são obrigatórios, `to` depois de `from`, no máximo 366 dias. O período inclui `from` e exclui `to`.
+`GET /admin/ai-usage?from=2026-11-01T00:00:00Z&to=2026-12-01T00:00:00Z`, só `Administrator`. `from` e `to` são obrigatórios, `to` depois de `from`, no máximo 366 dias. O período inclui `from` e exclui `to`. Pagina como as outras listagens; `sortBy` aceita `model` (padrão, `asc`), `calls`, `inputTokens` e `outputTokens`.
 
 ```json
 {
-  "from": "2026-11-01T00:00:00Z",
-  "to": "2026-12-01T00:00:00Z",
-  "models": [
+  "items": [
     {
       "provider": "openai",
       "model": "nome-do-modelo",
@@ -195,7 +193,11 @@ Salvo queda da conexão, o stream termina em `done` ou `error`; falha de ferrame
       "cachedInputTokens": 30100,
       "outputTokens": 6400
     }
-  ]
+  ],
+  "page": 1,
+  "pageSize": 20,
+  "totalCount": 1,
+  "totalPages": 1
 }
 ```
 

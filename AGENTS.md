@@ -81,7 +81,7 @@ Toda listagem pagina assim, com uma única exceção: coleção filha pequena e 
 | `ToPagedAsync(...)` só aceita consulta já ordenada | mesmo arquivo |
 | `QueryEnum<T>` para enum na query string (sem diferenciar maiúsculas; valor inválido vira 400) | `Common/Models/QueryEnum.cs` |
 
-Regras: `page` 1 a 10.000 (padrão 1); `pageSize` 1 a 100 (padrão 20); `sortBy` só aceita campos declarados na constante da feature (`TodosConstants.SortableFields`); fora do limite responde 400, nunca ajusta; página além do fim responde 200 com `items` vazio. Limites ficam em `Common/Statics/PaginationDefaults.cs`. Modelo completo: `TodoRepository.ListAsync`.
+Regras: `page` 1 a 10.000 (padrão 1); `pageSize` 1 a 100 (padrão 20); `sortBy` só aceita campos declarados na constante da feature (`TodosConstants.SortableFields`); fora do limite responde 400, nunca ajusta; página além do fim responde 200 com `items` vazio. Limites ficam em `Common/Statics/PaginationDefaults.cs`. Modelo completo: `TodoRepository.ListAsync`. Relatório agrupado também pagina (`AiUsageRepository.SummarizeAsync`): projete o `GroupBy` num tipo com propriedades `init`, não num record posicional, senão o EF não traduz a ordenação, e use como desempate uma expressão única por grupo.
 
 ## Erros e resultado
 

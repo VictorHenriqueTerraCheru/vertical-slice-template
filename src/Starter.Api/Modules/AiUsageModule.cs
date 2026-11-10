@@ -14,10 +14,10 @@ public sealed class AiUsageModule : IEndpointModule
             .RequireAuthorization(AuthorizationPolicies.Administrator)
             .MapGet("/", ReportAsync)
             .Validate<AiUsageReportRequest>()
-            .WithSummary("Resume o gasto de IA por provedor e modelo em um período");
+            .WithSummary("Resume o gasto de IA por provedor e modelo em um período, com paginação e ordenação");
     }
 
-    private static async Task<Results<Ok<AiUsageReport>, ProblemHttpResult>> ReportAsync(
+    private static async Task<Results<Ok<PagedResponse<AiUsageByModel>>, ProblemHttpResult>> ReportAsync(
         [AsParameters] AiUsageReportRequest request, IAiUsageService service, CancellationToken ct)
     {
         var result = await service.ReportAsync(request, ct);
