@@ -32,6 +32,14 @@ _Avoid_: Situação, fase
 Mudança de status aceita pela regra de `TodoTransitions`.
 _Avoid_: Movimentação
 
+**Assistente**:
+Chat com IA que responde sobre as tarefas do próprio usuário, lendo-as por ferramentas. Só lê; não cria nem altera.
+_Avoid_: Bot, chatbot
+
+**Gasto de IA**:
+Registro de cada chamada ao modelo, com tokens, status e latência, usado para acompanhar custo.
+_Avoid_: Log de IA, consumo
+
 **Evento de tarefa**:
 Registro imutável de uma transição, com status anterior, novo status, autor e momento.
 _Avoid_: Log, histórico bruto

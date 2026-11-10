@@ -11,6 +11,7 @@ Valores de enum viajam como string em camelCase, no corpo e na query string (`in
 | `status` da tarefa | `pending`, `inProgress`, `done`, `canceled` |
 | `role` do usuário | `user`, `administrator` |
 | `sortDirection` | `asc`, `desc` |
+| `role` da mensagem ao assistente | `user`, `assistant` |
 
 ## Autenticação
 
@@ -83,6 +84,7 @@ Regra de negócio, com `type` estável para o cliente tratar:
 | 404 | recurso inexistente ou de outro usuário (sem corpo) |
 | 409 | conflito de regra (`email-already-in-use`, `invalid-transition`, `todo-not-editable`) ou de concorrência (`concurrent-change`) |
 | 429 | rate limit |
+| 503 | integração de IA sem chave (`ai-not-configured`) |
 | 500 | falha inesperada, sem detalhe interno |
 
 `type` de conflito de concorrência: `concurrent-change`; o cliente pode reler e tentar de novo.
@@ -137,3 +139,64 @@ Resposta:
 ```
 
 Listagens: `GET /todos` (tarefas do usuário, filtro `status`; ordena por `createdAt` desc por padrão) e `GET /admin/todos` (todas, só `Administrator`). `GET /todos/{id}/events` não é paginada.
+
+## Assistente (SSE)
+
+`POST /assistant/messages`, autenticado, com rate limit de 10 requisições por minuto por usuário (`RATE_LIMIT_AI_PER_MINUTE`). O assistente só lê as tarefas de quem chamou. O servidor não guarda a conversa: o cliente manda o histórico a cada pedido.
+
+```json
+{
+  "messages": [
+    { "role": "user", "content": "Quais tarefas estão pendentes?" },
+    { "role": "assistant", "content": "Você tem duas: comprar leite e enviar relatório." },
+    { "role": "user", "content": "E qual é a mais antiga?" }
+  ]
+}
+```
+
+- De 1 a 20 mensagens, cada uma com 1 a 4.000 caracteres; a última precisa ser `user`. Fora disso, 400 antes de chamar a IA.
+- Sem `AI_CHAT_API_KEY`: 503 com `type` `ai-not-configured`.
+- Sucesso: 200 com `Content-Type: text/event-stream`. Eventos, em ordem:
+
+```text
+event: delta
+data: {"text":"Você tem "}
+
+event: delta
+data: {"text":"duas tarefas pendentes."}
+
+event: done
+data: {"truncated":false}
+```
+
+| Evento | Dados | Quando |
+|---|---|---|
+| `delta` | `text` | trecho da resposta; concatene na ordem |
+| `done` | `truncated` | fim; `true` quando a resposta foi cortada pelo limite de tokens de saída |
+| `error` | `type`, `title` | a IA falhou depois do 200 (`ai-unavailable`); descarte ou marque a resposta parcial |
+
+Salvo queda da conexão, o stream termina em `done` ou `error`; falha de ferramenta ou do registro de gasto não interrompe a resposta. Para ler no navegador, use `fetch` com o corpo em stream; `EventSource` não envia `POST` nem cabeçalho de autorização.
+
+## Gasto de IA
+
+`GET /admin/ai-usage?from=2026-11-01T00:00:00Z&to=2026-12-01T00:00:00Z`, só `Administrator`. `from` e `to` são obrigatórios, `to` depois de `from`, no máximo 366 dias. O período inclui `from` e exclui `to`.
+
+```json
+{
+  "from": "2026-11-01T00:00:00Z",
+  "to": "2026-12-01T00:00:00Z",
+  "models": [
+    {
+      "provider": "openai",
+      "model": "nome-do-modelo",
+      "calls": 42,
+      "failedCalls": 1,
+      "inputTokens": 51200,
+      "cachedInputTokens": 30100,
+      "outputTokens": 6400
+    }
+  ]
+}
+```
+
+`calls` conta cada chamada ao modelo, inclusive as interrompidas porque o cliente desconectou (status `canceled`, sem tokens conhecidos) (uma pergunta com ferramenta gera mais de uma). `inputTokens` inclui os `cachedInputTokens`.

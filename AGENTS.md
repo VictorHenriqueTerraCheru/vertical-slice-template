@@ -2,14 +2,14 @@
 
 Fonte única das regras do repositório. Qualquer IA lê este arquivo. Os `AGENTS.md` de subpasta só dizem o que mora ali e apontam o modelo.
 
-API .NET 10 em vertical slice, projeto único: `Module → Service → Repository → AppDbContext`. Exemplos reais: `Auth` (Identity + JWT) e `Todos` (CRUD, regra pura, transação com dois repositories, paginação). Copie o estilo deles.
+API .NET 10 em vertical slice, projeto único: `Module → Service → Repository → AppDbContext`. Exemplos reais: `Auth` (Identity + JWT, e-mail com template), `Todos` (CRUD, regra pura, transação com dois repositories, paginação), `Assistant` (IA com streaming e ferramentas, exemplo arquivado junto com `Todos`) e `AiUsage` (gasto de IA, fica no projeto). Copie o estilo deles.
 
 **Vai usar esta arquitetura em outro repositório?** Copiar ou adaptar por conta própria quebra o renomear e o arquivamento do exemplo: siga `ai/playbooks/levar-para-repositorio.md`. Para começar um projeto neste próprio clone, siga `ai/playbooks/iniciar-projeto.md`.
 
 ## Comandos
 
 ```bash
-docker compose up -d db
+docker compose up -d db mailpit
 cp .env.example .env
 dotnet run --project src/Starter.Api
 dotnet build
@@ -19,7 +19,8 @@ tools/check-docs.sh
 
 - Porta ocupada: ajuste `DB_PORT` e a porta de `DB_CONNECTION` no `.env`.
 - `.env` só é lido em `Development`; variável de ambiente real sempre vence.
-- `dotnet test` exige Docker (Testcontainers).
+- `dotnet test` exige Docker (Testcontainers com PostgreSQL e Mailpit).
+- Mailpit é opcional: com o bloco dele descomentado no `.env`, os e-mails de `Development` chegam em `http://localhost:8025`.
 - Scalar e OpenAPI ficam fora de `Production`.
 
 ## Estrutura
@@ -31,6 +32,7 @@ src/Starter.Api/
 ├── Feature/<Area>/
 │   ├── Abstractions/Repositories/  I<Area>Repository
 │   ├── Abstractions/Services/      I<Area>Service
+│   ├── Emails/                     templates de e-mail, quando existir
 │   ├── Errors/<Area>Errors.cs
 │   ├── Models/                     requests e responses
 │   ├── Repositories/               acesso a dados
@@ -50,7 +52,7 @@ Namespaces curtos e fixos: `Starter.Api.<Area>`, `Starter.Api.Common`, `Starter.
 
 ## Camadas
 
-- **Module** (`src/Starter.Api/Modules/TodoModule.cs`): só HTTP. Rotas em `Map`, handlers `private static` abaixo. Aplica `.Validate<T>()`, lê o usuário do token (`user.GetUserId()`), chama o service da própria área e traduz o `Result<T>` com `switch` para `Results<...>` tipado. Handlers terminam em `Async`. Um `IEndpointModule` novo é descoberto sozinho; não há registro.
+- **Module** (`src/Starter.Api/Modules/TodoModule.cs`): só HTTP. Rotas em `Map`, handlers `private static` abaixo. Aplica `.Validate<T>()`, lê o usuário do token (`user.GetUserId()`), chama o service da própria área e traduz o `Result<T>` com `switch` para `Results<...>` tipado. Handlers assíncronos terminam em `Async`. Um `IEndpointModule` novo é descoberto sozinho; não há registro.
 - **Service** (`Feature/Todos/Services/TodoService.cs`): regra de negócio e orquestração. Recebe repositories, `IUnitOfWork`, `TimeProvider`. Não conhece `HttpContext`, `AppDbContext`, LINQ de EF nem `IQueryable`. Devolve `Result<T>`.
 - **Repository** (`Feature/Todos/Repositories/TodoRepository.cs`): só acesso a dados. Único lugar, com `UnitOfWork`, que recebe `AppDbContext`. Não chama `SaveChanges`. Nunca devolve `IQueryable`. Escrita devolve entidade; leitura devolve projeção (`TodoItemResponse.Projection`).
 - **Regra pura** (`Feature/Todos/Rules/TodoTransitions.cs`): classe estática sem dependência além da BCL, com teste unitário direto e sem banco. Toda decisão de domínio do tipo "isto pode acontecer dado este estado" mora em `Feature/<Area>/Rules/`, mesmo que tenha uma linha só (exemplo: "um livro só pode ser avaliado depois de lido"). O service só chama a regra e devolve o erro; fica com a orquestração e nada mais. Modelo: `TodoTransitions`.
@@ -95,7 +97,9 @@ Regras: `page` 1 a 10.000 (padrão 1); `pageSize` 1 a 100 (padrão 20); `sortBy`
 - `.env.example` documenta cada variável. É o único arquivo com comentário.
 - `Common/Statics/EnvironmentNames.cs`: compare `configuration.Environment == EnvironmentNames.X`; nunca `IsProduction()`.
 - `Infrastructure/Configurations/`: uma classe por preocupação (autenticação, CORS, rate limit, OpenAPI, JSON, erro, proxy, security headers, `.env`).
-- Em `Staging` e `Production`, SMTP e `PASSWORD_RESET_URL` são obrigatórios; em `Development` e `Testing` o e-mail só é logado.
+- Em `Staging` e `Production`, SMTP e `PASSWORD_RESET_URL` são obrigatórios. `Testing` só loga o e-mail; `Development` só loga sem `SMTP_HOST` e envia de verdade com ele (Mailpit). Guia: `ai/guias/enviar-email.md`.
+- IA: sem `AI_CHAT_API_KEY` a API sobe e os endpoints de IA respondem 503 `ai-not-configured`; com a chave, `AI_CHAT_MODEL` é obrigatório. Guia: `ai/guias/chamar-ia.md`.
+- Segredos (`JWT_KEY`, `SMTP_USER`, `SMTP_PASSWORD`, `AI_CHAT_API_KEY`, `DB_CONNECTION`) vêm do cofre da plataforma em produção; o resto pode ir em configuração comum do deploy.
 - Seed de usuários só em `Development` (`Infrastructure/Persistence/DevelopmentSeed.cs`); administrador inicial em `Production` por `INITIAL_ADMIN_*` (`ProductionStartup.cs`).
 
 ## Segurança
@@ -122,6 +126,10 @@ Regras: `page` 1 a 10.000 (padrão 1); `pageSize` 1 a 100 (padrão 20); `sortBy`
 | Constante | `<Area>Constants` ou `Common/Statics` | `Feature/Todos/TodosConstants.cs` |
 | Configuração nova | chave, propriedade e `.env.example` | `Common/Models/EnvironmentConfiguration.cs`, `Common/Statics/ConfigurationKeys.cs` |
 | Integração externa | interface em `Common/Abstractions`, implementação em `Common/Services`, registro condicional em DI | `ai/guias/integracao-externa.md`, `Common/Abstractions/IEmailSender.cs` |
+| E-mail novo | `Feature/<Area>/Emails/<Nome>Email.cs` com `EmailLayout` | `ai/guias/enviar-email.md`, `Feature/Auth/Emails/PasswordResetEmail.cs` |
+| Chamada a modelo de IA | service da feature com `IChatModelClient` e `IAiUsageService` | `ai/guias/chamar-ia.md`, `Feature/Assistant/Services/AssistantService.cs` |
+| Outro provedor de IA | adaptador em `Common/Services` + `AddChatModel` | `ai/guias/chamar-ia.md`, `Common/Services/OpenAiChatModelClient.cs` |
+| Resposta em streaming | `TypedResults.ServerSentEvents` com eventos nomeados | `Modules/AssistantModule.cs` |
 | Registro em DI | `AddRepositories` e `AddServices` | `Infrastructure/DependencyInjections/DependencyInjection.cs` |
 | Listagem paginada | request herdando `PageRequest`, `AddPageRules`, `ApplySort` + `ToPagedAsync` | `Feature/Todos/Models/ListTodosRequest.cs`, `Feature/Todos/Repositories/TodoRepository.cs` |
 | Dois repositories na mesma operação | `ExecuteInTransactionAsync` no service | `TodoService.TransitionAsync` |
