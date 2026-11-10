@@ -18,8 +18,17 @@ public static class ConfigurationKeys
     public const string SmtpPassword = "SMTP_PASSWORD";
     public const string SmtpSenderName = "SMTP_SENDER_NAME";
     public const string SmtpSenderEmail = "SMTP_SENDER_EMAIL";
+    public const string SmtpSecurity = "SMTP_SECURITY";
+    public const string EmailLogoUrl = "EMAIL_LOGO_URL";
     public const string PasswordResetUrl = "PASSWORD_RESET_URL";
     public const string TrustedProxyNetworks = "TRUSTED_PROXY_NETWORKS";
     public const string InitialAdminEmail = "INITIAL_ADMIN_EMAIL";
     public const string InitialAdminPassword = "INITIAL_ADMIN_PASSWORD";
+    public const string AiChatProvider = "AI_CHAT_PROVIDER";
+    public const string AiChatModel = "AI_CHAT_MODEL";
+    public const string AiChatApiKey = "AI_CHAT_API_KEY";
+    public const string AiChatBaseUrl = "AI_CHAT_BASE_URL";
+    public const string AiChatIncludeReasoning = "AI_CHAT_INCLUDE_REASONING";
+    public const string AiChatReasoningEffort = "AI_CHAT_REASONING_EFFORT";
+    public const string RateLimitAiPerMinute = "RATE_LIMIT_AI_PER_MINUTE";
 }

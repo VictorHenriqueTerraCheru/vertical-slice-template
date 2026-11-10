@@ -82,7 +82,7 @@ public sealed class AuthService(
         try
         {
             await emailSender.SendAsync(
-                new EmailMessage(grant.Value!.Email, AuthConstants.PasswordResetSubject, PasswordResetBody(grant.Value!)),
+                PasswordResetEmail.Create(grant.Value!.Email, PasswordResetLink(grant.Value!), EmailBrand.From(configuration)),
                 cancellationToken);
         }
         catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
@@ -119,14 +119,10 @@ public sealed class AuthService(
             return new Empty();
         }, cancellationToken);
 
-    private string PasswordResetBody(PasswordResetGrant grant)
-    {
-        var link = QueryHelpers.AddQueryString(
+    private string PasswordResetLink(PasswordResetGrant grant) =>
+        QueryHelpers.AddQueryString(
             configuration.PasswordResetUrl ?? AuthConstants.DefaultPasswordResetUrl,
             new Dictionary<string, string?> { ["email"] = grant.Email, ["token"] = grant.Token });
-
-        return $"Recebemos um pedido para redefinir a senha da sua conta. Acesse o link abaixo para escolher uma nova senha:\n\n{link}\n\nSe você não fez esse pedido, ignore esta mensagem.";
-    }
 
     private TokenPair IssuePair(User user)
     {

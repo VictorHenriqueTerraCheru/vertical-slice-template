@@ -1,0 +1,15 @@
+meta {
+  name: Report (administrator)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/admin/ai-usage?from=2026-01-01T00:00:00Z&to=2027-01-01T00:00:00Z
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}

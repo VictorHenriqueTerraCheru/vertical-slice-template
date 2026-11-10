@@ -18,7 +18,7 @@ public sealed partial class PasswordTests(ApiFactory factory)
 
     private string ReadResetToken(string email)
     {
-        var body = factory.Emails.SentTo(email).Should().ContainSingle().Subject.Body;
+        var body = factory.Emails.SentTo(email).Should().ContainSingle().Subject.TextBody;
         var link = new Uri(LinkPattern().Match(body).Value);
         var query = QueryHelpers.ParseQuery(link.Query);
         query["email"].ToString().Should().Be(email);
@@ -40,7 +40,8 @@ public sealed partial class PasswordTests(ApiFactory factory)
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
         var message = factory.Emails.SentTo(user.Email).Should().ContainSingle().Subject;
-        message.Body.Should().Contain("token=");
+        message.TextBody.Should().Contain("token=");
+        message.HtmlBody.Should().Contain("token=");
         ReadResetToken(user.Email).Should().NotBeNullOrWhiteSpace();
     }
 
