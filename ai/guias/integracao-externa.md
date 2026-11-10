@@ -2,7 +2,10 @@
 
 Todo serviço de fora (e-mail, armazenamento, pagamento, IA) entra atrás de uma interface, para o service não conhecer o fornecedor e os testes usarem um substituto.
 
-Modelo real: `Common/Abstractions/IEmailSender.cs`, `Common/Services/LoggingEmailSender.cs`, `Common/Services/SmtpEmailSender.cs`, registro em `AddEmailSender` de `Infrastructure/DependencyInjections/DependencyInjection.cs`.
+Modelos reais:
+
+- E-mail: `Common/Abstractions/IEmailSender.cs`, `Common/Services/LoggingEmailSender.cs`, `Common/Services/SmtpEmailSender.cs`, registro em `AddEmailSender` de `Infrastructure/DependencyInjections/DependencyInjection.cs`. Guia próprio: `ai/guias/enviar-email.md`.
+- IA: `Common/Abstractions/IChatModelClient.cs`, `Common/Services/OpenAiChatModelClient.cs` com `HttpClient` tipado, registro em `AddChatModel`. Guia próprio: `ai/guias/chamar-ia.md`.
 
 ## Passos
 

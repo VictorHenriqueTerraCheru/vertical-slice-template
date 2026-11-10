@@ -8,6 +8,8 @@
 | Users | `src/Starter.Api/Feature/Users` | `src/Starter.Api/Modules/UserModule.cs` | dados do próprio usuário; único uso de `UserManager` |
 | Todos | `src/Starter.Api/Feature/Todos` | `src/Starter.Api/Modules/TodoModule.cs` | CRUD, transições de status com histórico, listagem paginada, rota de admin; molde do template |
 | Health | `src/Starter.Api/Feature/Health` | `src/Starter.Api/Modules/HealthModule.cs` | saúde da API e do banco |
+| Assistant | `src/Starter.Api/Feature/Assistant` | `src/Starter.Api/Modules/AssistantModule.cs` | chat com IA em SSE que lê as tarefas do usuário por ferramentas; molde do template |
+| AiUsage | `src/Starter.Api/Feature/AiUsage` | `src/Starter.Api/Modules/AiUsageModule.cs` | registro de tokens, status e latência de cada chamada de IA, e relatório de admin |
 
 ## Tabelas
 
@@ -17,6 +19,7 @@
 | `refresh_tokens` | `src/Starter.Api/Infrastructure/Persistence/Entities/RefreshToken.cs` | Auth |
 | `todo_items` | `src/Starter.Api/Infrastructure/Persistence/Entities/TodoItem.cs` | Todos |
 | `todo_events` | `src/Starter.Api/Infrastructure/Persistence/Entities/TodoEvent.cs` | Todos |
+| `ai_usage_entries` | `src/Starter.Api/Infrastructure/Persistence/Entities/AiUsageEntry.cs` | AiUsage |
 
 ## Rotas
 
@@ -27,6 +30,8 @@
 | `GET`, `PUT /api/v1/me` | autenticado |
 | `POST`, `GET /api/v1/todos`; `GET`, `PUT`, `DELETE /api/v1/todos/{id}`; `POST /api/v1/todos/{id}/transitions`; `GET /api/v1/todos/{id}/events` | autenticado, dono |
 | `GET /api/v1/admin/todos` | `Administrator` |
+| `POST /api/v1/assistant/messages` | autenticado, rate limit por usuário |
+| `GET /api/v1/admin/ai-usage` | `Administrator` |
 | `GET /api/v1/health`, `GET /api/v1/health/database` | público |
 
 Contrato HTTP: `docs/API.md`.
