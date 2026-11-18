@@ -4,7 +4,7 @@ O template não traz fila nem agendador. Use quando um trabalho não deve segura
 
 ## Opção simples: BackgroundService
 
-1. Crie `Common/Services/<Nome>Worker.cs` herdando `BackgroundService`.
+1. Crie `Feature/<Area>/Workers/<Nome>Worker.cs` herdando `BackgroundService`. Ele chama service de feature, então não pode morar em `Common`.
 2. Dentro do loop, crie um escopo com `IServiceScopeFactory`; services e repositories são scoped e não podem ser injetados direto.
 3. Use `TimeProvider` e `PeriodicTimer` para o intervalo, e respeite o `CancellationToken` de `ExecuteAsync`.
 4. Registre com `services.AddHostedService<...>()` em `Infrastructure/DependencyInjections/DependencyInjection.cs`.

@@ -1,4 +1,4 @@
-namespace Starter.Api.Common;
+namespace Starter.Api.Persistence;
 
 public sealed class PostgresClock : TimeProvider
 {

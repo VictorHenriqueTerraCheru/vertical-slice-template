@@ -1,6 +1,4 @@
-using Starter.Api.AiUsage;
-
-namespace Starter.Api.Persistence;
+namespace Starter.Api.AiUsage;
 
 public sealed class AiUsageEntry
 {

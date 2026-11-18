@@ -1,5 +1,3 @@
-using Starter.Api.Common;
-
 namespace Starter.Api.Infrastructure;
 
 public static class SecurityHeadersConfiguration

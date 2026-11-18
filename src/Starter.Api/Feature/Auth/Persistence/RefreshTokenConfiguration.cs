@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-using Starter.Api.Auth;
+using Starter.Api.Persistence;
 
-namespace Starter.Api.Persistence;
+namespace Starter.Api.Auth;
 
 public sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
 {

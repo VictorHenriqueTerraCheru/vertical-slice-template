@@ -4,7 +4,9 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json.Nodes;
 
-namespace Starter.Api.Common;
+using Starter.Api.Common;
+
+namespace Starter.Api.Infrastructure;
 
 public sealed class OpenAiChatModelClient(
     HttpClient http,

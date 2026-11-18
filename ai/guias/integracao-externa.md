@@ -4,16 +4,16 @@ Todo serviço de fora (e-mail, armazenamento, pagamento, IA) entra atrás de uma
 
 Modelos reais:
 
-- E-mail: `Common/Abstractions/IEmailSender.cs`, `Common/Services/LoggingEmailSender.cs`, `Common/Services/SmtpEmailSender.cs`, registro em `AddEmailSender` de `Infrastructure/DependencyInjections/DependencyInjection.cs`. Guia próprio: `ai/guias/enviar-email.md`.
-- IA: `Common/Abstractions/IChatModelClient.cs`, `Common/Services/OpenAiChatModelClient.cs` com `HttpClient` tipado, registro em `AddChatModel`. Guia próprio: `ai/guias/chamar-ia.md`.
+- E-mail: `Common/Abstractions/IEmailSender.cs`, `Infrastructure/Integrations/LoggingEmailSender.cs`, `Infrastructure/Integrations/SmtpEmailSender.cs`, registro em `AddEmailSender` de `Infrastructure/DependencyInjections/DependencyInjection.cs`. Guia próprio: `ai/guias/enviar-email.md`.
+- IA: `Common/Abstractions/IChatModelClient.cs`, `Infrastructure/Integrations/OpenAiChatModelClient.cs` com `HttpClient` tipado, registro em `AddChatModel`. Guia próprio: `ai/guias/chamar-ia.md`.
 
 ## Passos
 
 1. Interface em `Common/Abstractions/I<Nome>.cs`, com `CancellationToken` e tipos do domínio, nunca do fornecedor.
-2. Implementação real em `Common/Services/`, e uma falsa de desenvolvimento quando fizer sentido (log, memória).
+2. Implementação real em `Infrastructure/Integrations/`, e uma falsa de desenvolvimento quando fizer sentido (log, memória).
 3. Variáveis de ambiente: chaves em `Common/Statics/ConfigurationKeys.cs`, propriedades em `Common/Models/EnvironmentConfiguration.cs`, documentação em `.env.example`. Obrigatórias nos ambientes que usam a implementação real.
 4. Registro condicional por `configuration.Environment == EnvironmentNames.X` em `DependencyInjection.cs`.
-5. Constantes da integração em `Common/Statics/` (modelo: `SmtpConstants.cs`).
+5. Constantes da integração em `Common/Statics/` quando `EnvironmentConfiguration` usa (modelo: `SmtpConstants.cs`); se só o adaptador usa, em `Infrastructure/Statics/`.
 6. Teste com um substituto em `tests/Starter.Api.Tests/Infra/` (modelo: `CapturingEmailSender.cs`) e teste do registro por ambiente (modelo: `tests/Starter.Api.Tests/Common/EmailSenderRegistrationTests.cs`).
 
 ## Cuidados

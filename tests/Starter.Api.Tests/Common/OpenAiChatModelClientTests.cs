@@ -5,6 +5,7 @@ using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging.Abstractions;
 
 using Starter.Api.Common;
+using Starter.Api.Infrastructure;
 using Starter.Api.Tests.Infra;
 
 namespace Starter.Api.Tests.Common;

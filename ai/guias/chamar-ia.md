@@ -1,6 +1,6 @@
 # Chamar um modelo de IA
 
-A feature fala com o modelo por `IChatModelClient` (`Common/Abstractions/IChatModelClient.cs`) e nunca conhece o provedor. O adaptador atual é `Common/Services/OpenAiChatModelClient.cs` (Responses API com streaming). Decisão em `ai/adr/0008-ia-atras-de-porta-neutra.md`.
+A feature fala com o modelo por `IChatModelClient` (`Common/Abstractions/IChatModelClient.cs`) e nunca conhece o provedor. O adaptador atual é `Infrastructure/Integrations/OpenAiChatModelClient.cs` (Responses API com streaming). Decisão em `ai/adr/0008-ia-atras-de-porta-neutra.md`.
 
 Modelo real de uso: `Feature/Assistant/Services/AssistantService.cs`, exposto em `Modules/AssistantModule.cs`.
 
@@ -24,7 +24,7 @@ Modelo real de uso: `Feature/Assistant/Services/AssistantService.cs`, exposto em
 
 ## Outro provedor
 
-1. Implemente `IChatModelClient` em `Common/Services/<Provedor>ChatModelClient.cs`, com o mesmo contrato acima.
+1. Implemente `IChatModelClient` em `Infrastructure/Integrations/<Provedor>ChatModelClient.cs`, com o mesmo contrato acima.
 2. Acrescente o nome em `AiConstants.SupportedProviders` e o registro em `AddChatModel` de `Infrastructure/DependencyInjections/DependencyInjection.cs`.
 3. Teste o adaptador com um `HttpMessageHandler` falso, como em `tests/Starter.Api.Tests/Common/OpenAiChatModelClientTests.cs`: texto, ferramenta com reenvio, truncado, erro HTTP, stream interrompido e falha de rede.
 4. A feature não muda.
