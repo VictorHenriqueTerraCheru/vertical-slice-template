@@ -17,7 +17,7 @@ Aplique em desenvolvimento subindo a API (`docker compose up -d db`, `dotnet run
 - Tabelas e colunas em snake_case, plural em inglês (`todo_events`). A convenção vem de `UseSnakeCaseNamingConvention`.
 - Chave primária `Guid`, gerada no código com `Guid.CreateVersion7`.
 - Enum gravado como texto com `HasConversion<string>()` e `HasMaxLength`.
-- Índices e chaves estrangeiras com nome explícito, como em `Infrastructure/Persistence/Configurations/TodoEventConfiguration.cs`.
+- Índices e chaves estrangeiras com nome explícito, como em `Feature/Todos/Persistence/TodoEventConfiguration.cs`.
 - Entidade editável concorrentemente leva `Version` com `IsRowVersion()`.
 - Tabela por feature; não crie tabela polimórfica compartilhada entre áreas.
 - Todo dado de usuário leva a coluna do dono e índice por ela.

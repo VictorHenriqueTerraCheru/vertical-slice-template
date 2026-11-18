@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Starter.Api.Persistence;
+using Starter.Api.Persistence;
+
+namespace Starter.Api.Todos;
 
 public sealed class TodoEventConfiguration : IEntityTypeConfiguration<TodoEvent>
 {

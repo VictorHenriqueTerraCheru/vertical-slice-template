@@ -35,18 +35,30 @@ src/Starter.Api/
 │   ├── Emails/                     templates de e-mail, quando existir
 │   ├── Errors/<Area>Errors.cs
 │   ├── Models/                     requests e responses
+│   ├── Persistence/                entidades da área e IEntityTypeConfiguration
 │   ├── Repositories/               acesso a dados
 │   ├── Rules/                      regra pura, quando existir
 │   ├── Services/                   regra de negócio
 │   ├── Validators/                 um validator por arquivo
+│   ├── Workers/                    BackgroundService da área, quando existir
 │   └── <Area>Constants.cs
-├── Common/                     Abstractions, Enums, Errors, Extensions, Helpers, Middlewares, Models, Services, Statics
+├── Common/                     Abstractions, Enums, Errors, Extensions, Helpers, Models, Statics
 └── Infrastructure/
     ├── Configurations/         uma classe por preocupação
     ├── DependencyInjections/   DependencyInjection.cs
-    └── Persistence/            AppDbContext, UnitOfWork, Entities, Configurations, Migrations, seeds
+    ├── Integrations/           implementação das portas de Common/Abstractions (SMTP, IA)
+    ├── Middlewares/            middlewares HTTP
+    ├── Statics/                constantes que só a montagem usa
+    └── Persistence/            AppDbContext, UnitOfWork, User do Identity, Migrations, seeds
 tests/Starter.Api.Tests/        espelha Feature/; Infra/ tem factory, cliente e cenários
 ```
+
+Onde cada coisa mora:
+
+- Só uma área usa: `Feature/<Area>/`, inclusive a entidade e o mapeamento EF dela. Arquivar uma área é mover a pasta.
+- Duas ou mais áreas usam: `Common/`. Common guarda só o que as features enxergam (portas, `Result<T>`, erros comuns, paginação, constantes compartilhadas) e não depende de feature nem de `Infrastructure`.
+- Só a montagem usa (configuração, middleware, adaptador concreto, seed, constante de infraestrutura): `Infrastructure/`.
+- `User` fica em `Infrastructure/Persistence` porque é a base do `AppDbContext` do Identity e várias áreas apontam chave estrangeira para ele.
 
 Namespaces curtos e fixos: `Starter.Api.<Area>`, `Starter.Api.Common`, `Starter.Api.Infrastructure`, `Starter.Api.Persistence`, `Starter.Api.Modules`. O namespace não segue a subpasta.
 
@@ -66,7 +78,7 @@ Namespaces curtos e fixos: `Starter.Api.<Area>`, `Starter.Api.Common`, `Starter.
 - Escrita única que não pode conflitar: `SaveChangesAsync(ct)`. Retorna `Task` de propósito. Exemplo: `TodoService.CreateAsync`.
 - Update ou delete que pode conflitar, e qualquer operação que toque mais de um repository: `ExecuteInTransactionAsync`. Ela salva e confirma só se o `Result<T>` é sucesso, faz rollback e limpa o tracker se falha, e traduz `DbUpdateConcurrencyException` em `CommonErrors.ConcurrentChange` (409). Exemplos: `TodoService.TransitionAsync` (dois repositories), `UpdateAsync`, `DeleteAsync`.
 - Primeira escrita que pode disputar uma chave única ou composta (duas requisições simultâneas criando o mesmo registro) passa por `ExecuteInTransactionAsync`: `DbUpdateException` de violação de unicidade (`DatabaseErrors.IsUniqueViolation`) vira `CommonErrors.ConcurrentChange` (409). O repository só traduz unicidade por conta própria quando precisa de um erro específico, como `UserRepository` faz com `UserErrors.EmailAlreadyInUse`.
-- Conflito é detectado por `Version` (`IsRowVersion`) na entidade; entidade editável concorrentemente declara essa coluna em `Infrastructure/Persistence/Configurations/TodoItemConfiguration.cs`.
+- Conflito é detectado por `Version` (`IsRowVersion`) na entidade; entidade editável concorrentemente declara essa coluna em `Feature/Todos/Persistence/TodoItemConfiguration.cs`.
 
 ## Paginação
 
@@ -119,16 +131,16 @@ Regras: `page` 1 a 10.000 (padrão 1); `pageSize` 1 a 100 (padrão 20); `sortBy`
 | Regra de negócio | método no service | `Feature/Todos/Services/TodoService.cs` |
 | Regra pura | `Feature/<Area>/Rules/` | `Feature/Todos/Rules/TodoTransitions.cs` |
 | Consulta | método no repository, devolvendo projeção | `Feature/Todos/Repositories/TodoRepository.cs` |
-| Tabela nova | entidade + configuração + migration | `Infrastructure/Persistence/Entities/TodoEvent.cs`, `Infrastructure/Persistence/Configurations/TodoEventConfiguration.cs`, `Infrastructure/Persistence/AppDbContext.cs` |
+| Tabela nova | entidade + configuração em `Feature/<Area>/Persistence/` + migration | `Feature/Todos/Persistence/TodoEvent.cs`, `Feature/Todos/Persistence/TodoEventConfiguration.cs` |
 | Migration | `ai/playbooks/nova-migration.md` | `Infrastructure/Persistence/Migrations/` |
 | Validação | um validator por request | `Feature/Todos/Validators/CreateTodoRequestValidator.cs` |
 | Mensagem de erro | propriedade estática em `<Area>Errors` | `Feature/Todos/Errors/TodoErrors.cs` |
-| Constante | `<Area>Constants` ou `Common/Statics` | `Feature/Todos/TodosConstants.cs` |
+| Constante | `<Area>Constants`; `Common/Statics` se feature usa; `Infrastructure/Statics` se só a montagem usa | `Feature/Todos/TodosConstants.cs` |
 | Configuração nova | chave, propriedade e `.env.example` | `Common/Models/EnvironmentConfiguration.cs`, `Common/Statics/ConfigurationKeys.cs` |
-| Integração externa | interface em `Common/Abstractions`, implementação em `Common/Services`, registro condicional em DI | `ai/guias/integracao-externa.md`, `Common/Abstractions/IEmailSender.cs` |
+| Integração externa | interface em `Common/Abstractions`, implementação em `Infrastructure/Integrations`, registro condicional em DI | `ai/guias/integracao-externa.md`, `Common/Abstractions/IEmailSender.cs` |
 | E-mail novo | `Feature/<Area>/Emails/<Nome>Email.cs` com `EmailLayout` | `ai/guias/enviar-email.md`, `Feature/Auth/Emails/PasswordResetEmail.cs` |
 | Chamada a modelo de IA | service da feature com `IChatModelClient` e `IAiUsageService` | `ai/guias/chamar-ia.md`, `Feature/Assistant/Services/AssistantService.cs` |
-| Outro provedor de IA | adaptador em `Common/Services` + `AddChatModel` | `ai/guias/chamar-ia.md`, `Common/Services/OpenAiChatModelClient.cs` |
+| Outro provedor de IA | adaptador em `Infrastructure/Integrations` + `AddChatModel` | `ai/guias/chamar-ia.md`, `Infrastructure/Integrations/OpenAiChatModelClient.cs` |
 | Resposta em streaming | `TypedResults.ServerSentEvents` com eventos nomeados | `Modules/AssistantModule.cs` |
 | Registro em DI | `AddRepositories` e `AddServices` | `Infrastructure/DependencyInjections/DependencyInjection.cs` |
 | Listagem paginada | request herdando `PageRequest`, `AddPageRules`, `ApplySort` + `ToPagedAsync` | `Feature/Todos/Models/ListTodosRequest.cs`, `Feature/Todos/Repositories/TodoRepository.cs` |
@@ -149,7 +161,7 @@ Fluxo completo de uma feature nova: `ai/playbooks/nova-feature.md`.
 - Zero comentários em qualquer linguagem, inclusive SQL, YAML e Dockerfile (exceções: `.env.example` e os arquivos gerados pelo EF em `Migrations/`, que mantêm os comentários gerados e não são editados). Sem assinatura de autoria.
 - KISS: métodos pequenos, guard clauses, nomes que dispensam explicação.
 - Um tipo por arquivo. Enums agrupados em `<Assunto>Enums.cs` (`Feature/Todos/Models/TodoEnums.cs`) ou arquivo próprio em `Common/Enums`.
-- Sem `const` no arquivo que a consome: vai para `<Area>Constants.cs` ou `Common/Statics`. Exceção: o caminho da rota, literal em cada Module.
+- Sem `const` no arquivo que a consome: vai para `<Area>Constants.cs`, `Common/Statics` ou `Infrastructure/Statics`. Exceção: o caminho da rota, literal em cada Module.
 - Sem Controllers, MediatR, CQRS formal nem Clean Architecture.
 - Código, banco e rotas em inglês. Mensagens ao usuário e `WithSummary` em português. Endpoint leva `WithSummary`, não `WithDescription`.
 - Métodos assíncronos terminam em `Async` e recebem `CancellationToken`.

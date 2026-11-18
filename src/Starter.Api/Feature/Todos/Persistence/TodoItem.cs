@@ -1,6 +1,4 @@
-using Starter.Api.Todos;
-
-namespace Starter.Api.Persistence;
+namespace Starter.Api.Todos;
 
 public sealed class TodoItem
 {

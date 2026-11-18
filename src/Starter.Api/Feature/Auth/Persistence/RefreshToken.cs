@@ -1,4 +1,4 @@
-namespace Starter.Api.Persistence;
+namespace Starter.Api.Auth;
 
 public sealed class RefreshToken
 {

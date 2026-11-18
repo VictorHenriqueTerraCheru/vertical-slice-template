@@ -1,4 +1,4 @@
-namespace Starter.Api.Common;
+namespace Starter.Api.Infrastructure;
 
 public sealed class SecurityHeadersMiddleware(RequestDelegate next)
 {

@@ -16,10 +16,10 @@
 | Tabela | Entidade | Feature |
 |---|---|---|
 | tabelas do Identity (`users`, `user_claims`, `user_logins`, `user_tokens`) | `src/Starter.Api/Infrastructure/Persistence/Entities/User.cs` | Users |
-| `refresh_tokens` | `src/Starter.Api/Infrastructure/Persistence/Entities/RefreshToken.cs` | Auth |
-| `todo_items` | `src/Starter.Api/Infrastructure/Persistence/Entities/TodoItem.cs` | Todos |
-| `todo_events` | `src/Starter.Api/Infrastructure/Persistence/Entities/TodoEvent.cs` | Todos |
-| `ai_usage_entries` | `src/Starter.Api/Infrastructure/Persistence/Entities/AiUsageEntry.cs` | AiUsage |
+| `refresh_tokens` | `src/Starter.Api/Feature/Auth/Persistence/RefreshToken.cs` | Auth |
+| `todo_items` | `src/Starter.Api/Feature/Todos/Persistence/TodoItem.cs` | Todos |
+| `todo_events` | `src/Starter.Api/Feature/Todos/Persistence/TodoEvent.cs` | Todos |
+| `ai_usage_entries` | `src/Starter.Api/Feature/AiUsage/Persistence/AiUsageEntry.cs` | AiUsage |
 
 ## Rotas
 

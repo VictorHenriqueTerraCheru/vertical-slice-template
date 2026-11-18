@@ -30,14 +30,10 @@ fi
 mold=ai/moldes/Todos
 persistence="$api_dir/Infrastructure/Persistence"
 
-mkdir -p "$mold/Entities" "$mold/Configurations" "$mold/Modules"
+mkdir -p "$mold/Modules"
 
 git mv "$api_dir/Feature/Todos" "$mold/Feature"
 git mv "$api_dir/Modules/TodoModule.cs" "$mold/Modules/TodoModule.cs"
-git mv "$persistence/Entities/TodoItem.cs" "$mold/Entities/TodoItem.cs"
-git mv "$persistence/Entities/TodoEvent.cs" "$mold/Entities/TodoEvent.cs"
-git mv "$persistence/Configurations/TodoItemConfiguration.cs" "$mold/Configurations/TodoItemConfiguration.cs"
-git mv "$persistence/Configurations/TodoEventConfiguration.cs" "$mold/Configurations/TodoEventConfiguration.cs"
 git mv "$tests_dir/Todos" "$mold/tests"
 
 if [ -d bruno/Todos ]; then
@@ -82,8 +78,6 @@ if [ "${#pointer_files[@]}" -gt 0 ]; then
   perl -pi -e '
     s{(?:src/[\w.]+/)?Feature/Todos}{ai/moldes/Todos/Feature}g;
     s{(?:src/[\w.]+/)?Modules/TodoModule\.cs}{ai/moldes/Todos/Modules/TodoModule.cs}g;
-    s{(?:src/[\w.]+/)?Infrastructure/Persistence/Entities/(Todo(?:Item|Event)\.cs)}{ai/moldes/Todos/Entities/$1}g;
-    s{(?:src/[\w.]+/)?Infrastructure/Persistence/Configurations/(Todo(?:Item|Event)Configuration\.cs)}{ai/moldes/Todos/Configurations/$1}g;
     s{tests/[\w.]+/Todos}{ai/moldes/Todos/tests}g;
     s{bruno/Todos}{ai/moldes/Todos/bruno}g;
     s{(?:src/[\w.]+/)?Feature/Assistant}{ai/moldes/Assistant/Feature}g;

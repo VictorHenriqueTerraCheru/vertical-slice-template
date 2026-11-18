@@ -1,4 +1,6 @@
-namespace Starter.Api.Common;
+using Starter.Api.Common;
+
+namespace Starter.Api.Infrastructure;
 
 public sealed class LoggingEmailSender(ILogger<LoggingEmailSender> logger) : IEmailSender
 {

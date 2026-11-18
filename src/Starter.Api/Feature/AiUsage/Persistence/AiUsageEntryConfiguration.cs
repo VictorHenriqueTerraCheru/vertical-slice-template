@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-using Starter.Api.AiUsage;
+using Starter.Api.Persistence;
 
-namespace Starter.Api.Persistence;
+namespace Starter.Api.AiUsage;
 
 public sealed class AiUsageEntryConfiguration : IEntityTypeConfiguration<AiUsageEntry>
 {

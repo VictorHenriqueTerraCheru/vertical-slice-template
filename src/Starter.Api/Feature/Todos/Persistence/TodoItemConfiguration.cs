@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-using Starter.Api.Todos;
+using Starter.Api.Persistence;
 
-namespace Starter.Api.Persistence;
+namespace Starter.Api.Todos;
 
 public sealed class TodoItemConfiguration : IEntityTypeConfiguration<TodoItem>
 {

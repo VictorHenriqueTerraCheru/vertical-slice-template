@@ -120,10 +120,10 @@ if [ -z "$(git -C "$clone" grep -iI todo -- 'src/**/*.cs' 'tests/**/*.cs' || tru
   && [ -z "$(git -C "$clone" grep -I 'Assistant' -- 'src/**/*.cs' 'tests/**/*.cs' | grep -v 'ChatRole.Assistant' | grep -v 'Assistant,' || true)" ] \
   && [ -f "$assistant_mold/Modules/AssistantModule.cs" ] && [ -d "$assistant_mold/Feature/Services" ] \
   && [ -f "$assistant_mold/tests/AssistantTests.cs" ] && [ -f "$assistant_mold/bruno/send-message.bru" ] \
-  && [ -d "$clone/src/Acme.Api/Feature/AiUsage" ] && [ -f "$clone/src/Acme.Api/Common/Services/OpenAiChatModelClient.cs" ] \
+  && [ -d "$clone/src/Acme.Api/Feature/AiUsage" ] && [ -f "$clone/src/Acme.Api/Infrastructure/Integrations/OpenAiChatModelClient.cs" ] \
   && [ -f "$mold/Modules/TodoModule.cs" ] && [ -d "$mold/Feature/Services" ] \
-  && [ -f "$mold/Entities/TodoItem.cs" ] && [ -f "$mold/Entities/TodoEvent.cs" ] \
-  && [ -f "$mold/Configurations/TodoItemConfiguration.cs" ] && [ -f "$mold/tests/TodoCrudTests.cs" ] \
+  && [ -f "$mold/Feature/Persistence/TodoItem.cs" ] && [ -f "$mold/Feature/Persistence/TodoEvent.cs" ] \
+  && [ -f "$mold/Feature/Persistence/TodoItemConfiguration.cs" ] && [ -f "$mold/tests/TodoCrudTests.cs" ] \
   && [ -f "$mold/bruno/create.bru" ] && [ ! -e "$clone/tools/archive-example.sh" ] && [ ! -e "$clone/tools/rename-project.sh" ]; then
   pass "archive deixa src e tests sem Todo e sem o assistente, mantém IA e gasto, e completa os moldes"
 else
